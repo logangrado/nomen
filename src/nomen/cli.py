@@ -1,0 +1,27 @@
+import click
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from nomen.pipelines.ssa import load_ssa
+from nomen.pipelines.btn import load_btn
+
+
+@click.group()
+def cli():
+    """Nomen — baby name data tool."""
+    pass
+
+
+@cli.command()
+@click.option("--force", is_flag=True, help="Re-download zip files even if cached.")
+def ingest_ssa(force):
+    """Download and bulk-load SSA national + state name data into Postgres."""
+    load_ssa(force_download=force)
+
+
+@cli.command()
+@click.option("--letters", default=None, help="Subset of letters to scrape, e.g. 'abc'.")
+def ingest_btn(letters):
+    """Scrape Behind the Name and load etymology/usage data into name_meta."""
+    load_btn(letters=letters)

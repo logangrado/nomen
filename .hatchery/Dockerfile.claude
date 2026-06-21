@@ -44,12 +44,11 @@ ENV UV_PROJECT_ENVIRONMENT=/home/hatchery/.venv
 # ENV PATH="/usr/local/cargo/bin:$PATH"
 
 # ── Extra apt packages ────────────────────────────────────────────────────────
-# USER root
-# RUN apt-get update && apt-get install -y --no-install-recommends \
-#     build-essential \
-#     postgresql-client \
-#     && rm -rf /var/lib/apt/lists/*
-# USER hatchery
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql \
+    && rm -rf /var/lib/apt/lists/*
+USER hatchery
 
 # ── kubectl ───────────────────────────────────────────────────────────────────
 # Uncomment to enable kubectl inside the sandbox.
