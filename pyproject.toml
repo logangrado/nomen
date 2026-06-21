@@ -1,0 +1,53 @@
+[project]
+name = "nomen"
+dynamic = ["version"]
+description = ""
+readme = "README.md"
+license = "GPL"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Logan Grado", email = "grado.logan@gmail.com" }
+]
+maintainers = [
+    { name = "Logan Grado", email = "grado.logan@gmail.com" }
+]
+requires-python = ">=3.12"
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+]
+
+[project.urls]
+Repository = "https://github.com/logangrado/nomen"
+
+# [project.scripts]
+# nomen = "nomen.cli:main"
+
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.uv-dynamic-versioning]
+enable = true
+
+[tool.uv]
+cache-keys = [
+  { file = "pyproject.toml" },
+  { git = { commit = true, tags = true } },
+]
+
+[dependency-groups]
+dev = [
+    "invoke>=3.0.3",
+    "ipdb>=0.13.13",
+    "ipython>=9.10.0",
+    "pytest>=8.0",
+    "ruff>=0.15.2",
+]
