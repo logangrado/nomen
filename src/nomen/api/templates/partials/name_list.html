@@ -16,7 +16,7 @@
     hx-get="/names"
     hx-target="#name-list"
     hx-push-url="true"
-    hx-include="[name='search'],[name='gender'],[name='tags'],[name='hide_rated'],[name='trend']"
+    hx-include="[name='search'],[name='gender']:checked,[name='tags']:checked,[name='hide_rated']:checked,[name='trend']:checked,#current-sort,#current-dir"
     hx-vals='{"sort": "{{ sc }}", "dir": "{{ next_dir }}"}'
   >{{ label }}{{ indicator }}</span>
 </th>
@@ -24,7 +24,7 @@
 
 {% if names %}
 <p class="muted" style="color:#666; font-size:0.9rem;">
-  Showing {{ names | length }} name{{ 's' if names | length != 1 }}{% if truncated %} (filtered — use filters to narrow down){% endif %}
+  Page {{ page }} · {{ names | length }} name{{ 's' if names | length != 1 }}
 </p>
 <table>
   <thead>
@@ -117,6 +117,32 @@
     {% endfor %}
   </tbody>
 </table>
+{% set _qs = "search=" ~ search ~ "&gender=" ~ (gender or "") ~ "&trend=" ~ trend ~ "&sort=" ~ sort ~ "&dir=" ~ dir ~ (("&tags=" ~ tags | join("&tags=")) if tags else "") ~ ("&hide_rated=true" if hide_rated else "") %}
+<nav class="pagination" aria-label="Page navigation">
+  {% if page > 1 %}
+  <span
+    class="pagination-btn"
+    hx-get="/names?{{ _qs }}&page={{ page - 1 }}"
+    hx-target="#name-list"
+    hx-push-url="true"
+  >← Prev</span>
+  {% else %}
+  <span class="pagination-btn disabled">← Prev</span>
+  {% endif %}
+
+  <span class="pagination-info">Page {{ page }}</span>
+
+  {% if has_next %}
+  <span
+    class="pagination-btn"
+    hx-get="/names?{{ _qs }}&page={{ page + 1 }}"
+    hx-target="#name-list"
+    hx-push-url="true"
+  >Next →</span>
+  {% else %}
+  <span class="pagination-btn disabled">Next →</span>
+  {% endif %}
+</nav>
 {% else %}
 <p>No names match your filters.</p>
 {% endif %}

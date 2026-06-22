@@ -9,7 +9,7 @@ from nomen.queries import get_language_tags, random_name, search_names
 router = APIRouter()
 templates = Jinja2Templates(directory=Path(__file__).parent.parent / "templates")
 
-PAGE_SIZE = 200
+PAGE_SIZE = 100
 
 
 @router.get("/")
@@ -24,8 +24,10 @@ async def browse(
     trend: str | None = Query(default=None),
     sort: str = Query(default="name"),
     dir: str = Query(default="asc"),
+    page: int = Query(default=1, ge=1),
 ):
     all_tags = get_language_tags(conn)
+    offset = (page - 1) * PAGE_SIZE
     names = search_names(
         conn,
         gender=gender or None,
@@ -37,9 +39,10 @@ async def browse(
         sort_by=sort,
         sort_dir=dir,
         limit=PAGE_SIZE,
+        offset=offset,
     )
 
-    truncated = len(names) == PAGE_SIZE
+    has_next = len(names) == PAGE_SIZE
     is_htmx = request.headers.get("HX-Request") == "true"
     template = "partials/name_list.html" if is_htmx else "browse.html"
 
@@ -56,7 +59,8 @@ async def browse(
             "trend": trend or "",
             "sort": sort,
             "dir": dir,
-            "truncated": truncated,
+            "page": page,
+            "has_next": has_next,
             "user_id": user_id,
         },
     )
@@ -74,7 +78,9 @@ async def names_fragment(
     trend: str | None = Query(default=None),
     sort: str = Query(default="name"),
     dir: str = Query(default="asc"),
+    page: int = Query(default=1, ge=1),
 ):
+    offset = (page - 1) * PAGE_SIZE
     names = search_names(
         conn,
         gender=gender or None,
@@ -86,8 +92,9 @@ async def names_fragment(
         sort_by=sort,
         sort_dir=dir,
         limit=PAGE_SIZE,
+        offset=offset,
     )
-    truncated = len(names) == PAGE_SIZE
+    has_next = len(names) == PAGE_SIZE
     return templates.TemplateResponse(
         request,
         "partials/name_list.html",
@@ -100,7 +107,8 @@ async def names_fragment(
             "trend": trend or "",
             "sort": sort,
             "dir": dir,
-            "truncated": truncated,
+            "page": page,
+            "has_next": has_next,
             "user_id": user_id,
         },
     )
