@@ -21,6 +21,9 @@ def search_names(
     hide_rated_by: str | None = None,
     current_user: str | None = None,
     search: str | None = None,
+    popularity_min: float | None = None,
+    popularity_max: float | None = None,
+    trend: str | None = None,
     limit: int = 50,
     offset: int = 0,
 ) -> list[dict]:
@@ -32,6 +35,8 @@ def search_names(
         hide_rated_by: user_id — exclude names already rated by this user
         current_user: user_id — include their current rating in results
         search: prefix filter on name (case-insensitive)
+        popularity_min/max: percentile range (0–100) based on popularity_pct_5yr
+        trend: 'rising' (trend_5yr > 0) or 'falling' (trend_5yr < 0)
         limit/offset: pagination
     """
     hide_join = ""
@@ -48,6 +53,10 @@ def search_names(
             "AND r_cur.user_id = %(current_user)s"
         )
 
+    pop_join = ""
+    if popularity_min is not None or popularity_max is not None or trend:
+        pop_join = "LEFT JOIN name_popularity np ON np.name = n.name"
+
     conditions = []
     if gender == "M":
         conditions.append("nm.gender IN ('M', 'MF')")
@@ -59,6 +68,14 @@ def search_names(
         conditions.append("r_hide.rating IS NULL")
     if search:
         conditions.append("n.name LIKE %(search)s")
+    if popularity_min is not None:
+        conditions.append("np.popularity_pct_5yr >= %(popularity_min)s")
+    if popularity_max is not None:
+        conditions.append("np.popularity_pct_5yr <= %(popularity_max)s")
+    if trend == "rising":
+        conditions.append("np.trend_5yr > 0")
+    elif trend == "falling":
+        conditions.append("np.trend_5yr < 0")
 
     where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
@@ -70,9 +87,12 @@ def search_names(
             nm.gender,
             nm.meaning,
             nm.language_tags,
+            np.popularity_pct_5yr,
+            np.trend_5yr,
             {rating_col}
         FROM names n
         LEFT JOIN name_meta nm ON nm.name = n.name
+        LEFT JOIN name_popularity np ON np.name = n.name
         {hide_join}
         {rating_join}
         {where}
@@ -87,6 +107,8 @@ def search_names(
         "hide_rated_by": hide_rated_by,
         "current_user": current_user,
         "search": f"{search.strip().lower()}%" if search else None,
+        "popularity_min": popularity_min,
+        "popularity_max": popularity_max,
     }
 
     with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:

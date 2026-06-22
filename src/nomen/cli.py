@@ -5,6 +5,7 @@ load_dotenv()
 
 from nomen.pipelines.ssa import load_ssa
 from nomen.pipelines.btn import load_btn
+from nomen.pipelines.popularity import load_popularity
 
 
 @click.group()
@@ -25,6 +26,12 @@ def ingest_ssa(force):
 def ingest_btn(letters):
     """Scrape Behind the Name and load etymology/usage data into name_meta."""
     load_btn(letters=letters)
+
+
+@cli.command()
+def compute_popularity():
+    """Precompute name popularity metrics from name_stats into name_popularity."""
+    load_popularity()
 
 
 @cli.command()

@@ -1,6 +1,7 @@
 from sqlalchemy import (
     CheckConstraint,
     Column,
+    Float,
     ForeignKey,
     Index,
     Integer,
@@ -69,6 +70,22 @@ name_meta = Table(
     Column("meaning", Text),
     Column("notes", Text),
     Column("gender", Text, CheckConstraint("gender IN ('M','F','MF')")),
+)
+
+name_popularity = Table(
+    "name_popularity",
+    metadata,
+    Column("name", Text, ForeignKey("names.name"), primary_key=True),
+    Column("recent_rate", Float),
+    Column("avg_5yr", Float),
+    Column("avg_10yr", Float),
+    Column("avg_20yr", Float),
+    Column("popularity_pct_5yr", Float),
+    Column("peak_rate", Float),
+    Column("peak_year", SmallInteger),
+    Column("peak_ratio_5yr", Float),
+    Column("trend_5yr", Float),
+    Column("trend_10yr", Float),
 )
 
 ratings = Table(
