@@ -78,6 +78,15 @@
     }
     .filter-presets button { margin: 0; padding: 0.2rem 0.5rem; font-size: 0.8rem; }
     .filter-presets-sep { color: #ccc; font-size: 0.8rem; }
+    /* Pico sets display:table-cell on td/th which overrides [hidden] */
+    [data-col][hidden] { display: none !important; }
+    /* ── Sortable headers ────────────────────────────────────── */
+    .sort-header {
+      cursor: pointer; white-space: nowrap;
+      user-select: none; color: inherit;
+    }
+    .sort-header:hover { text-decoration: underline; }
+    .sort-active { font-weight: 700; }
     /* ── Column picker ───────────────────────────────────────── */
     .col-picker-wrapper { position: relative; }
     .col-picker-panel {

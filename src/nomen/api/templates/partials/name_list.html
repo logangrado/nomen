@@ -1,5 +1,27 @@
 {# Name list fragment for browse mode.
-   Context: names, gender, tags, hide_rated, user_id, truncated (bool) #}
+   Context: names, gender, tags, hide_rated, user_id, truncated, sort, dir #}
+
+{# Macro: sortable column header.
+   col      = data-col key (must match td and column picker checkbox)
+   label    = display text
+   sort_col = sort key passed to the server (defaults to col if not given)
+   default_dir = first-click direction #}
+{% macro sort_th(col, label, sort_col=None, default_dir="asc") %}
+{% set sc = sort_col if sort_col else col %}
+{% set is_active = (sort == sc) %}
+{% set next_dir = "desc" if (is_active and dir == "asc") else ("asc" if (is_active and dir == "desc") else default_dir) %}
+{% set indicator = " ↑" if (is_active and dir == "asc") else (" ↓" if (is_active and dir == "desc") else "") %}
+<th data-col="{{ col }}">
+  <span class="sort-header{% if is_active %} sort-active{% endif %}"
+    hx-get="/names"
+    hx-target="#name-list"
+    hx-push-url="true"
+    hx-include="[name='search'],[name='gender'],[name='tags'],[name='hide_rated'],[name='trend']"
+    hx-vals='{"sort": "{{ sc }}", "dir": "{{ next_dir }}"}'
+  >{{ label }}{{ indicator }}</span>
+</th>
+{% endmacro %}
+
 {% if names %}
 <p class="muted" style="color:#666; font-size:0.9rem;">
   Showing {{ names | length }} name{{ 's' if names | length != 1 }}{% if truncated %} (filtered — use filters to narrow down){% endif %}
@@ -7,20 +29,20 @@
 <table>
   <thead>
     <tr>
-      <th data-col="name">Name</th>
+      {{ sort_th("name", "Name") }}
       <th data-col="gender">Gender</th>
       <th data-col="usage">Language</th>
       <th data-col="meaning">Meaning</th>
-      <th data-col="rank_1yr" title="Rank by most recent year's rate (among names with ≥0.1/1k avg)">Rank (1yr)</th>
-      <th data-col="rank_5yr" title="Rank by 5yr avg rate (among names with ≥0.1/1k avg)">Rank (5yr)</th>
-      <th data-col="rank_10yr" title="Rank by 10yr avg rate (among names with ≥0.1/1k avg)">Rank (10yr)</th>
-      <th data-col="rank_20yr" title="Rank by 20yr avg rate (among names with ≥0.1/1k avg)">Rank (20yr)</th>
-      <th data-col="rate_recent" title="Rate per 1,000 births, most recent year">Rate (recent)</th>
-      <th data-col="rate_5yr" title="Average rate per 1,000 births over last 5 years">Rate (5yr avg)</th>
-      <th data-col="rate_10yr" title="Average rate per 1,000 births over last 10 years">Rate (10yr avg)</th>
-      <th data-col="rate_20yr" title="Average rate per 1,000 births over last 20 years">Rate (20yr avg)</th>
-      <th data-col="trend_5yr" title="Slope of rate vs year over last 5 years (per 1k births/yr)">Trend (5yr)</th>
-      <th data-col="trend_10yr" title="Slope of rate vs year over last 10 years (per 1k births/yr)">Trend (10yr)</th>
+      {{ sort_th("rank_1yr",    "Rank (1yr)",    "asc") }}
+      {{ sort_th("rank_5yr",    "Rank (5yr)",    "asc") }}
+      {{ sort_th("rank_10yr",   "Rank (10yr)",   "asc") }}
+      {{ sort_th("rank_20yr",   "Rank (20yr)",   "asc") }}
+      {{ sort_th("rate_recent", "Rate (recent)",  sort_col="recent_rate", default_dir="desc") }}
+      {{ sort_th("rate_5yr",   "Rate (5yr avg)", sort_col="avg_5yr",     default_dir="desc") }}
+      {{ sort_th("rate_10yr",  "Rate (10yr avg)",sort_col="avg_10yr",    default_dir="desc") }}
+      {{ sort_th("rate_20yr",  "Rate (20yr avg)",sort_col="avg_20yr",    default_dir="desc") }}
+      {{ sort_th("trend_5yr",  "Trend (5yr)",    default_dir="desc") }}
+      {{ sort_th("trend_10yr", "Trend (10yr)",   default_dir="desc") }}
       <th data-col="rating">Rating</th>
     </tr>
   </thead>
