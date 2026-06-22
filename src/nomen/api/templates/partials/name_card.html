@@ -1,30 +1,36 @@
 {# Single name card for random mode. Context: name (dict or None), gender, tags, hide_rated, user_id #}
 <div id="name-card">
 {% if name %}
+  {# Extract dict fields before shadowing name with the string #}
+  {% set _gender = name.gender %}
+  {% set _meaning = name.meaning %}
+  {% set _language_tags = name.language_tags %}
+  {% set mode = "random" %}
+  {% set user_rating = name.user_rating %}
+  {% set name = name.name %}
   <article>
     <header>
-      <div style="display:flex; align-items:baseline; gap:0.75rem; flex-wrap:wrap;">
-        <span class="name-card-title">{{ name.name | title }}</span>
-        {% if name.gender %}
-        <span class="gender-badge gender-{{ name.gender }}">{{ name.gender }}</span>
-        {% endif %}
+      <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap; justify-content:space-between;">
+        <div style="display:flex; align-items:baseline; gap:0.6rem; flex-wrap:wrap;">
+          <span class="name-card-title">{{ name | title }}</span>
+          {% if _gender %}
+          <span class="gender-badge gender-{{ _gender }}">{{ _gender }}</span>
+          {% endif %}
+        </div>
+        {% include "partials/rating_buttons.html" %}
       </div>
-      {% if name.language_tags %}
-      <div>
-        {% for tag in name.language_tags %}
+      {% if _language_tags %}
+      <div style="margin-top:0.4rem;">
+        {% for tag in _language_tags %}
         <span class="tag-pill">{{ tag }}</span>
         {% endfor %}
       </div>
       {% endif %}
     </header>
 
-    {% if name.meaning %}
-    <p>{{ name.meaning }}</p>
+    {% if _meaning %}
+    <p>{{ _meaning }}</p>
     {% endif %}
-
-    <footer>
-      {% include "partials/rating_buttons.html" with context %}
-    </footer>
   </article>
 {% else %}
   <div class="exhausted">
