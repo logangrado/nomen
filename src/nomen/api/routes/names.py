@@ -163,9 +163,11 @@ async def random_page(
         {
             "name": name,
             "all_tags": all_tags,
+            "tag_groups": list(TAG_GROUPS.keys()),
             "gender": gender,
             "tags": tags,
             "hide_rated": hide_rated,
+            "conditions": "",
             "user_id": user_id,
         },
     )

@@ -47,6 +47,7 @@
 
   // ── Field definitions mirroring queries._COND_FIELDS ─────────────────
   const TAG_GROUPS = {{ tag_groups | tojson }};
+  const ALL_TAGS = {{ all_tags | tojson }};
 
   const COND_FIELDS = [
     { value: 'region',      label: 'Region',          kind: 'region' },
@@ -136,8 +137,7 @@
         sel.addEventListener('change', serializeConditions);
         valWrap.appendChild(sel);
       } else if (kind === 'language') {
-        const tags = document.querySelector('[name="tags"]');
-        const allTags = tags ? [...tags.options].map(o => o.value) : [];
+        const allTags = ALL_TAGS;
         const existing = existingVal ? (Array.isArray(existingVal) ? existingVal : existingVal.split(',').map(s=>s.trim()).filter(Boolean)) : [];
         const sel = document.createElement('select');
         sel.dataset.condVal = '';
