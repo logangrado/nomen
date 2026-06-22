@@ -372,3 +372,121 @@ def test_get_name_detail_no_meta(conn):
     assert result["name"] == "rawname"
     assert result["gender"] is None
     assert result["meaning"] is None
+
+
+# ---------------------------------------------------------------------------
+# search_names — advanced conditions
+# ---------------------------------------------------------------------------
+
+def test_conditions_numeric_lte(conn):
+    _seed(conn)
+    _seed_popularity(conn)
+    # avg_5yr: ada=2.3, zara=1.5, boris=0.9; milan=NULL
+    conds = [{"field": "avg_5yr", "op": "lte", "val": "1.5"}]
+    rows = search_names(conn, conditions_arg=conds)
+    names = [r["name"] for r in rows]
+    assert "zara" in names    # 1.5 <= 1.5
+    assert "boris" in names   # 0.9 <= 1.5
+    assert "ada" not in names # 2.3 > 1.5
+    assert "milan" not in names  # NULL excluded
+
+
+def test_conditions_numeric_gte(conn):
+    _seed(conn)
+    _seed_popularity(conn)
+    conds = [{"field": "avg_5yr", "op": "gte", "val": "1.5"}]
+    rows = search_names(conn, conditions_arg=conds)
+    names = [r["name"] for r in rows]
+    assert "ada" in names
+    assert "zara" in names
+    assert "boris" not in names
+    assert "milan" not in names
+
+
+def test_conditions_integer_rank(conn):
+    _seed(conn)
+    _seed_popularity(conn)
+    # rank_5yr: ada=1, zara=2, boris=3
+    conds = [{"field": "rank_5yr", "op": "lte", "val": "2"}]
+    rows = search_names(conn, conditions_arg=conds)
+    names = [r["name"] for r in rows]
+    assert "ada" in names
+    assert "zara" in names
+    assert "boris" not in names
+    assert "milan" not in names
+
+
+def test_conditions_combined(conn):
+    """Multiple conditions are ANDed together."""
+    _seed(conn)
+    _seed_popularity(conn)
+    # avg_5yr >= 1.0 AND rank_5yr <= 2
+    conds = [
+        {"field": "avg_5yr", "op": "gte", "val": "1.0"},
+        {"field": "rank_5yr", "op": "lte", "val": "2"},
+    ]
+    rows = search_names(conn, conditions_arg=conds)
+    names = [r["name"] for r in rows]
+    assert "ada" in names    # 2.3 >= 1.0 AND rank=1
+    assert "zara" in names   # 1.5 >= 1.0 AND rank=2
+    assert "boris" not in names  # rank=3 fails second condition
+    assert "milan" not in names
+
+
+def test_conditions_gender(conn):
+    _seed(conn)
+    conds = [{"field": "gender", "op": "", "val": "F"}]
+    rows = search_names(conn, conditions_arg=conds)
+    names = [r["name"] for r in rows]
+    assert "ada" in names
+    assert "zara" in names
+    assert "milan" in names   # MF matches F
+    assert "boris" not in names
+
+
+def test_conditions_language(conn):
+    _seed(conn)
+    conds = [{"field": "language", "op": "", "val": "Polish"}]
+    rows = search_names(conn, conditions_arg=conds)
+    names = [r["name"] for r in rows]
+    assert "zara" in names    # has Polish
+    assert "ada" not in names  # German, English only
+
+
+def test_conditions_invalid_field_ignored(conn):
+    """Unknown fields are silently skipped — no SQL error."""
+    _seed(conn)
+    conds = [{"field": "nonexistent", "op": "eq", "val": "100"}]
+    rows = search_names(conn, conditions_arg=conds)
+    assert len(rows) == 4  # all names returned, invalid condition skipped
+
+
+def test_conditions_invalid_op_ignored(conn):
+    """Unknown operators are silently skipped."""
+    _seed(conn)
+    _seed_popularity(conn)
+    conds = [{"field": "avg_5yr", "op": "INJECTION", "val": "1.0"}]
+    rows = search_names(conn, conditions_arg=conds)
+    assert len(rows) == 4
+
+
+def test_conditions_non_numeric_val_ignored(conn):
+    """Non-numeric value for numeric field is silently skipped."""
+    _seed(conn)
+    _seed_popularity(conn)
+    conds = [{"field": "avg_5yr", "op": "gte", "val": "not-a-number"}]
+    rows = search_names(conn, conditions_arg=conds)
+    assert len(rows) == 4  # condition skipped, all names returned
+
+
+def test_conditions_combined_with_gender_filter(conn):
+    """conditions_arg works alongside the regular gender parameter."""
+    _seed(conn)
+    _seed_popularity(conn)
+    conds = [{"field": "avg_5yr", "op": "gte", "val": "1.5"}]
+    rows = search_names(conn, gender="F", conditions_arg=conds)
+    names = [r["name"] for r in rows]
+    assert "ada" in names    # F, avg_5yr=2.3
+    assert "zara" in names   # F, avg_5yr=1.5
+    assert "boris" not in names  # M, avg_5yr=0.9
+    assert "milan" not in names  # MF passes gender but avg_5yr=NULL

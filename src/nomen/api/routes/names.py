@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Query, Request
+from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from nomen.api.deps import get_db, require_user
@@ -96,6 +97,10 @@ async def names_fragment(
     page: int = Query(default=1, ge=1),
     conditions: str | None = Query(default=None),
 ):
+    # Redirect full-page requests to browse so /names?... in history still works
+    if request.headers.get("HX-Request") != "true":
+        return RedirectResponse(url=str(request.url).replace("/names?", "/?", 1).replace("/names", "/", 1))
+
     conds = _parse_conditions(conditions)
     offset = (page - 1) * PAGE_SIZE
     names = search_names(
