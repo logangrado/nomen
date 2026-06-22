@@ -22,6 +22,8 @@ async def browse(
     hide_rated: bool = Query(default=False),
     search: str | None = Query(default=None),
     trend: str | None = Query(default=None),
+    sort: str = Query(default="name"),
+    dir: str = Query(default="asc"),
 ):
     all_tags = get_language_tags(conn)
     names = search_names(
@@ -32,6 +34,8 @@ async def browse(
         current_user=user_id,
         search=search or None,
         trend=trend or None,
+        sort_by=sort,
+        sort_dir=dir,
         limit=PAGE_SIZE,
     )
 
@@ -50,6 +54,8 @@ async def browse(
             "hide_rated": hide_rated,
             "search": search or "",
             "trend": trend or "",
+            "sort": sort,
+            "dir": dir,
             "truncated": truncated,
             "user_id": user_id,
         },
@@ -66,6 +72,8 @@ async def names_fragment(
     hide_rated: bool = Query(default=False),
     search: str | None = Query(default=None),
     trend: str | None = Query(default=None),
+    sort: str = Query(default="name"),
+    dir: str = Query(default="asc"),
 ):
     names = search_names(
         conn,
@@ -75,6 +83,8 @@ async def names_fragment(
         current_user=user_id,
         search=search or None,
         trend=trend or None,
+        sort_by=sort,
+        sort_dir=dir,
         limit=PAGE_SIZE,
     )
     truncated = len(names) == PAGE_SIZE
@@ -88,6 +98,8 @@ async def names_fragment(
             "hide_rated": hide_rated,
             "search": search or "",
             "trend": trend or "",
+            "sort": sort,
+            "dir": dir,
             "truncated": truncated,
             "user_id": user_id,
         },

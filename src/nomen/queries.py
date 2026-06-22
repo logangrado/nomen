@@ -22,6 +22,8 @@ def search_names(
     current_user: str | None = None,
     search: str | None = None,
     trend: str | None = None,
+    sort_by: str = "name",
+    sort_dir: str = "asc",
     limit: int = 50,
     offset: int = 0,
 ) -> list[dict]:
@@ -34,6 +36,7 @@ def search_names(
         current_user: user_id — include their current rating in results
         search: prefix filter on name (case-insensitive)
         trend: 'rising' (trend_5yr > 0) or 'falling' (trend_5yr < 0)
+        sort_by: column to sort by (whitelisted); sort_dir: 'asc' or 'desc'
         limit/offset: pagination
     """
     hide_join = ""
@@ -72,6 +75,25 @@ def search_names(
 
     where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
+    _SORT_COLS = {
+        "name":        "n.name",
+        "rank_1yr":    "np.rank_1yr",
+        "rank_5yr":    "np.rank_5yr",
+        "rank_10yr":   "np.rank_10yr",
+        "rank_20yr":   "np.rank_20yr",
+        "recent_rate": "np.recent_rate",
+        "avg_5yr":     "np.avg_5yr",
+        "avg_10yr":    "np.avg_10yr",
+        "avg_20yr":    "np.avg_20yr",
+        "trend_5yr":   "np.trend_5yr",
+        "trend_10yr":  "np.trend_10yr",
+    }
+    col = _SORT_COLS.get(sort_by, "n.name")
+    direction = "ASC" if sort_dir != "desc" else "DESC"
+    # NULLs at end so names without popularity data don't crowd the top
+    null_pos = "NULLS LAST" if direction == "DESC" else "NULLS LAST"
+    order_by = f"{col} {direction} {null_pos}, n.name ASC"
+
     rating_col = "r_cur.rating AS user_rating" if current_user else "NULL::text AS user_rating"
 
     sql = f"""
@@ -97,7 +119,7 @@ def search_names(
         {hide_join}
         {rating_join}
         {where}
-        ORDER BY n.name
+        ORDER BY {order_by}
         LIMIT %(limit)s OFFSET %(offset)s
     """
 

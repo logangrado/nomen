@@ -39,6 +39,28 @@ def _seed(conn):
     conn.commit()
 
 
+def _seed_popularity(conn):
+    """Add name_popularity rows for ada, boris, zara; milan has no row (NULL)."""
+    with conn.cursor() as cur:
+        cur.executemany(
+            """
+            INSERT INTO name_popularity (name, recent_rate, avg_5yr, avg_10yr, avg_20yr,
+                rank_1yr, rank_5yr, rank_10yr, rank_20yr, trend_5yr, trend_10yr,
+                peak_rate, peak_year, peak_ratio_5yr)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (name) DO NOTHING
+            """,
+            [
+                # name, recent, 5yr, 10yr, 20yr, r1, r5, r10, r20, t5, t10, peak, pk_yr, ratio
+                ("ada",   2.5, 2.3, 2.0, 1.8,  1, 1, 1, 1,  0.05, 0.03, 3.0, 2010, 0.77),
+                ("boris", 1.0, 0.9, 0.8, 0.7,  3, 3, 3, 3, -0.01,-0.02, 1.5, 2005, 0.60),
+                ("zara",  1.8, 1.5, 1.2, 1.0,  2, 2, 2, 2,  0.02, 0.01, 2.0, 2015, 0.75),
+                # milan: no row → NULLs in join
+            ],
+        )
+    conn.commit()
+
+
 # ---------------------------------------------------------------------------
 # get_language_tags
 # ---------------------------------------------------------------------------
@@ -111,6 +133,63 @@ def test_search_names_current_user_rating(conn):
     assert ada_row["user_rating"] == 1
     boris_row = next(r for r in rows if r["name"] == "boris")
     assert boris_row["user_rating"] is None
+
+
+# ---------------------------------------------------------------------------
+# search_names — sorting
+# ---------------------------------------------------------------------------
+
+def test_sort_default_alphabetical(conn):
+    _seed(conn)
+    rows = search_names(conn)
+    names = [r["name"] for r in rows]
+    assert names == sorted(names)
+
+
+def test_sort_by_rank_5yr_asc(conn):
+    _seed(conn)
+    _seed_popularity(conn)
+    rows = search_names(conn, sort_by="rank_5yr", sort_dir="asc")
+    names = [r["name"] for r in rows]
+    # ada=rank1, zara=rank2, boris=rank3, milan=NULL (last)
+    assert names.index("ada") < names.index("zara") < names.index("boris")
+    assert names[-1] == "milan"  # NULL sorts last
+
+
+def test_sort_by_avg_5yr_desc(conn):
+    _seed(conn)
+    _seed_popularity(conn)
+    rows = search_names(conn, sort_by="avg_5yr", sort_dir="desc")
+    names = [r["name"] for r in rows]
+    # ada=2.3, zara=1.5, boris=0.9, milan=NULL
+    assert names.index("ada") < names.index("zara") < names.index("boris")
+    assert names[-1] == "milan"
+
+
+def test_sort_nulls_last(conn):
+    """Names with no popularity data always sort after names that have it."""
+    _seed(conn)
+    _seed_popularity(conn)
+    for sort_col in ("rank_5yr", "avg_5yr", "trend_5yr"):
+        for direction in ("asc", "desc"):
+            rows = search_names(conn, sort_by=sort_col, sort_dir=direction)
+            names = [r["name"] for r in rows]
+            assert names[-1] == "milan", f"milan should be last for {sort_col} {direction}"
+
+
+def test_sort_unknown_col_falls_back_to_name(conn):
+    """Unknown sort_by values should fall back to alphabetical, not error."""
+    _seed(conn)
+    rows = search_names(conn, sort_by="'; DROP TABLE names; --", sort_dir="asc")
+    names = [r["name"] for r in rows]
+    assert names == sorted(names)
+
+
+def test_sort_name_desc(conn):
+    _seed(conn)
+    rows = search_names(conn, sort_by="name", sort_dir="desc")
+    names = [r["name"] for r in rows]
+    assert names == sorted(names, reverse=True)
 
 
 # ---------------------------------------------------------------------------

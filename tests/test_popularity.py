@@ -125,18 +125,18 @@ def test_peak_ratio_5yr_declining(pop_conn):
     assert ratio < 0.5
 
 
-def test_popularity_pct_5yr_ordering(pop_conn):
+def test_rank_5yr_ordering(pop_conn):
     load_popularity()
     with pop_conn.cursor() as cur:
         cur.execute(
-            "SELECT name, popularity_pct_5yr FROM name_popularity "
+            "SELECT name, rank_5yr FROM name_popularity "
             "WHERE name IN ('rising', 'falling', 'stable') "
-            "ORDER BY popularity_pct_5yr DESC"
+            "ORDER BY rank_5yr ASC"
         )
         rows = cur.fetchall()
 
     names_in_order = [r[0] for r in rows]
-    # rising (avg_5yr highest) > stable (mid) > falling (lowest avg_5yr)
+    # rising (avg_5yr highest) = rank 1, stable = rank 2, falling = rank 3
     assert names_in_order[0] == "rising"
     assert names_in_order[-1] == "falling"
 
@@ -166,51 +166,42 @@ def search_conn(conn, engine):
             """
             INSERT INTO name_popularity
                 (name, recent_rate, avg_5yr, avg_10yr, avg_20yr,
-                 popularity_pct_5yr, peak_rate, peak_year,
-                 peak_ratio_5yr, trend_5yr, trend_10yr)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 rank_1yr, rank_5yr, rank_10yr, rank_20yr,
+                 peak_rate, peak_year, peak_ratio_5yr, trend_5yr, trend_10yr)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             [
-                ("common",   5.0, 5.0, 4.5, 3.0,  95.0, 6.0, 2020, 0.83,  0.05, 0.04),
-                ("rare",     0.1, 0.1, 0.1, 0.1,   5.0, 0.2, 2015, 0.50, -0.01, 0.00),
-                ("midrange", 1.0, 1.0, 1.0, 0.8,  50.0, 1.2, 2018, 0.83,  0.00, 0.01),
-                ("trendy",   2.0, 2.0, 1.0, 0.5,  70.0, 2.0, 2023, 1.00,  0.20, 0.15),
-                ("fading",   0.5, 0.5, 1.5, 2.5,  30.0, 3.0, 2010, 0.17, -0.15,-0.10),
+                # name,    rec, 5yr, 10yr, 20yr, r1, r5, r10,r20, peak, pk_yr, ratio, t5,   t10
+                ("common",   5.0, 5.0, 4.5, 3.0,  1,  1,  1,  1, 6.0, 2020, 0.83,  0.05, 0.04),
+                ("rare",     0.1, 0.1, 0.1, 0.1,  5,  5,  5,  5, 0.2, 2015, 0.50, -0.01, 0.00),
+                ("midrange", 1.0, 1.0, 1.0, 0.8,  3,  3,  3,  3, 1.2, 2018, 0.83,  0.00, 0.01),
+                ("trendy",   2.0, 2.0, 1.0, 0.5,  2,  2,  2,  2, 2.0, 2023, 1.00,  0.20, 0.15),
+                ("fading",   0.5, 0.5, 1.5, 2.5,  4,  4,  4,  4, 3.0, 2010, 0.17, -0.15,-0.10),
             ],
         )
     conn.commit()
     return conn
 
 
-def test_search_popularity_min(search_conn):
-    rows = search_names(search_conn, popularity_min=80.0)
-    names = {r["name"] for r in rows}
-    assert "common" in names       # pct=95
-    assert "midrange" not in names # pct=50
-    assert "rare" not in names     # pct=5
+def test_search_sort_by_rank(search_conn):
+    rows = search_names(search_conn, sort_by="rank_5yr", sort_dir="asc")
+    names = [r["name"] for r in rows]
+    # rank 1=common, 2=trendy, 3=midrange, 4=fading, 5=rare
+    assert names.index("common") < names.index("trendy") < names.index("midrange")
 
 
-def test_search_popularity_max(search_conn):
-    rows = search_names(search_conn, popularity_max=20.0)
-    names = {r["name"] for r in rows}
-    assert "rare" in names        # pct=5
-    assert "common" not in names  # pct=95
-
-
-def test_search_popularity_range(search_conn):
-    rows = search_names(search_conn, popularity_min=40.0, popularity_max=75.0)
-    names = {r["name"] for r in rows}
-    assert "midrange" in names  # pct=50
-    assert "trendy" in names    # pct=70
-    assert "common" not in names
-    assert "rare" not in names
+def test_search_sort_by_rate_desc(search_conn):
+    rows = search_names(search_conn, sort_by="avg_5yr", sort_dir="desc")
+    names = [r["name"] for r in rows]
+    assert names[0] == "common"   # avg_5yr=5.0, highest
+    assert names[-1] == "rare"    # avg_5yr=0.1, lowest
 
 
 def test_search_trend_rising(search_conn):
     rows = search_names(search_conn, trend="rising")
     names = {r["name"] for r in rows}
-    assert "trendy" in names   # trend_5yr=0.20
-    assert "common" in names   # trend_5yr=0.05
+    assert "trendy" in names      # trend_5yr=0.20
+    assert "common" in names      # trend_5yr=0.05
     assert "fading" not in names  # trend_5yr=-0.15
     assert "rare" not in names    # trend_5yr=-0.01
 
@@ -218,16 +209,14 @@ def test_search_trend_rising(search_conn):
 def test_search_trend_falling(search_conn):
     rows = search_names(search_conn, trend="falling")
     names = {r["name"] for r in rows}
-    assert "fading" in names   # trend_5yr=-0.15
-    assert "rare" in names     # trend_5yr=-0.01
+    assert "fading" in names      # trend_5yr=-0.15
+    assert "rare" in names        # trend_5yr=-0.01
     assert "trendy" not in names
 
 
-def test_search_trend_and_popularity_combined(search_conn):
-    # Rising AND popular (pct > 60)
-    rows = search_names(search_conn, trend="rising", popularity_min=60.0)
-    names = {r["name"] for r in rows}
-    assert "trendy" in names   # rising + pct=70
-    assert "common" in names   # rising + pct=95
-    assert "fading" not in names
-    assert "midrange" not in names  # stable trend
+def test_search_trend_and_sort_combined(search_conn):
+    rows = search_names(search_conn, trend="rising", sort_by="rank_5yr", sort_dir="asc")
+    names = [r["name"] for r in rows]
+    # Only rising names: common (rank 1) and trendy (rank 2)
+    assert set(names) == {"common", "trendy"}
+    assert names.index("common") < names.index("trendy")

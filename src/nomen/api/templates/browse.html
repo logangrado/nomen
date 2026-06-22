@@ -13,7 +13,7 @@
     hx-get="/names"
     hx-target="#name-list"
     hx-trigger="keyup changed delay:100ms, search"
-    hx-include="[name='gender']:checked, [name='tags']:checked, [name='hide_rated']:checked, [name='trend']:checked, [name='popularity_min'], [name='popularity_max']"
+    hx-include="[name='gender']:checked, [name='tags']:checked, [name='hide_rated']:checked, [name='trend']:checked, #current-sort, #current-dir"
     autocomplete="off"
     style="flex:1; min-width:160px; margin:0;"
   >
@@ -44,6 +44,10 @@
     </div>
   </div>
 </div>
+
+{# Hidden inputs so filter form changes preserve sort state #}
+<input type="hidden" id="current-sort" name="sort" value="{{ sort }}">
+<input type="hidden" id="current-dir" name="dir" value="{{ dir }}">
 
 {% set form_action = "/names" %}
 {% set form_target = "#name-list" %}
@@ -113,6 +117,15 @@
     document.addEventListener('click', () => { if (panel) panel.hidden = true; });
     panel?.addEventListener('click', e => e.stopPropagation());
   }
+
+  // Keep hidden sort inputs in sync when a sort header is clicked
+  document.body.addEventListener('htmx:configRequest', function (e) {
+    const trigger = e.detail.elt;
+    if (!trigger.classList?.contains('sort-header')) return;
+    const vals = e.detail.parameters;
+    if (vals.sort) document.getElementById('current-sort').value = vals.sort;
+    if (vals.dir)  document.getElementById('current-dir').value  = vals.dir;
+  });
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
