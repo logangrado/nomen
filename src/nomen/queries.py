@@ -11,6 +11,7 @@ import psycopg.rows
 _COND_FIELDS: dict[str, tuple[str, str]] = {
     "gender":      ("gender",   "nm.gender"),
     "language":    ("language", "nm.language_tags"),
+    "trend":       ("trend",    "np.trend_5yr"),
     "recent_rate": ("numeric",  "np.recent_rate"),
     "avg_5yr":     ("numeric",  "np.avg_5yr"),
     "avg_10yr":    ("numeric",  "np.avg_10yr"),
@@ -54,6 +55,12 @@ def _apply_conditions(
                 sql_fragments.append("nm.gender IN ('M', 'MF')")
             elif val == "F":
                 sql_fragments.append("nm.gender IN ('F', 'MF')")
+
+        elif kind == "trend":
+            if val == "rising":
+                sql_fragments.append("np.trend_5yr > 0")
+            elif val == "falling":
+                sql_fragments.append("np.trend_5yr < 0")
 
         elif kind == "language":
             tags = [v.strip() for v in val.split(",")] if isinstance(val, str) else list(val)

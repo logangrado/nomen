@@ -479,6 +479,19 @@ def test_conditions_non_numeric_val_ignored(conn):
     assert len(rows) == 4  # condition skipped, all names returned
 
 
+def test_conditions_trend(conn):
+    _seed(conn)
+    _seed_popularity(conn)
+    # trend_5yr: ada=+0.05 (rising), boris=-0.01 (falling), zara=+0.02 (rising)
+    conds = [{"field": "trend", "op": "", "val": "rising"}]
+    rows = search_names(conn, conditions_arg=conds)
+    names = [r["name"] for r in rows]
+    assert "ada" in names
+    assert "zara" in names
+    assert "boris" not in names
+    assert "milan" not in names  # NULL trend
+
+
 def test_conditions_combined_with_gender_filter(conn):
     """conditions_arg works alongside the regular gender parameter."""
     _seed(conn)

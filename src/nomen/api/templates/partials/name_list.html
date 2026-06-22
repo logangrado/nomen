@@ -16,7 +16,7 @@
     hx-get="/names"
     hx-target="#name-list"
     hx-push-url="true"
-    hx-include="[name='search'],[name='gender']:checked,[name='tags']:checked,[name='hide_rated']:checked,[name='trend']:checked,#current-sort,#current-dir,[name='conditions']"
+    hx-include="[name='search'],[name='hide_rated']:checked,#current-sort,#current-dir,[name='conditions']"
     hx-vals='{"sort": "{{ sc }}", "dir": "{{ next_dir }}"}'
   >{{ label }}{{ indicator }}</span>
 </th>
@@ -117,7 +117,7 @@
     {% endfor %}
   </tbody>
 </table>
-{% set _qs = "search=" ~ search ~ "&gender=" ~ (gender or "") ~ "&trend=" ~ trend ~ "&sort=" ~ sort ~ "&dir=" ~ dir ~ (("&tags=" ~ tags | join("&tags=")) if tags else "") ~ ("&hide_rated=true" if hide_rated else "") ~ ("&conditions=" ~ conditions | urlencode if conditions else "") %}
+{% set _qs = "search=" ~ search ~ "&sort=" ~ sort ~ "&dir=" ~ dir ~ ("&hide_rated=true" if hide_rated else "") ~ ("&conditions=" ~ conditions | urlencode if conditions else "") %}
 <nav class="pagination" aria-label="Page navigation">
   {% if page > 1 %}
   <span

@@ -1,5 +1,5 @@
 {# Filter panel — collapsible <details>, closed by default.
-   Caller must set: form_action, form_target, form_trigger, all_tags, gender, tags, hide_rated #}
+   Caller must set: form_action, form_target, form_trigger, gender, tags, hide_rated, trend #}
 <details class="filter-panel">
   <summary>Filters</summary>
 
@@ -19,54 +19,12 @@
     hx-include="[name='search'],[name='conditions']"
     hx-push-url="true"
   >
-    <div class="filter-grid">
-      <fieldset>
-        <legend>Gender</legend>
-        <label>
-          <input type="radio" name="gender" value="" {% if not gender %}checked{% endif %}>
-          Any
-        </label>
-        <label>
-          <input type="radio" name="gender" value="F" {% if gender == 'F' %}checked{% endif %}>
-          Girl (F / MF)
-        </label>
-        <label>
-          <input type="radio" name="gender" value="M" {% if gender == 'M' %}checked{% endif %}>
-          Boy (M / MF)
-        </label>
-      </fieldset>
-
-      <fieldset>
-        <legend>Language</legend>
-        <select name="tags" multiple size="5">
-          {% for t in all_tags %}
-          <option value="{{ t }}" {% if t in tags %}selected{% endif %}>{{ t }}</option>
-          {% endfor %}
-        </select>
-      </fieldset>
-
-      <fieldset>
-        <legend>Trend (5yr)</legend>
-        <label>
-          <input type="radio" name="trend" value="" {% if not trend %}checked{% endif %}>
-          Any
-        </label>
-        <label>
-          <input type="radio" name="trend" value="rising" {% if trend == 'rising' %}checked{% endif %}>
-          Rising ↑
-        </label>
-        <label>
-          <input type="radio" name="trend" value="falling" {% if trend == 'falling' %}checked{% endif %}>
-          Falling ↓
-        </label>
-      </fieldset>
-
-      <fieldset style="border:none; padding:0;">
-        <label>
-          <input type="checkbox" name="hide_rated" value="true" {% if hide_rated %}checked{% endif %}>
-          Hide names I've already rated
-        </label>
-      </fieldset>
+    <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.5rem; flex-wrap:wrap;">
+      <label style="display:flex; align-items:center; gap:0.3rem; font-size:0.85rem; cursor:pointer;">
+        <input type="checkbox" name="hide_rated" value="true" {% if hide_rated %}checked{% endif %}
+               style="width:1rem !important; height:1rem !important; margin:0;">
+        Hide already rated
+      </label>
     </div>
 
     {# Advanced condition builder #}
@@ -88,6 +46,7 @@
   const COND_FIELDS = [
     { value: 'gender',      label: 'Gender',         kind: 'gender' },
     { value: 'language',    label: 'Language',        kind: 'language' },
+    { value: 'trend',       label: 'Trend (5yr)',     kind: 'trend' },
     { value: 'rank_1yr',    label: 'Rank (1yr)',      kind: 'integer' },
     { value: 'rank_5yr',    label: 'Rank (5yr)',      kind: 'integer' },
     { value: 'rank_10yr',   label: 'Rank (10yr)',     kind: 'integer' },
@@ -96,8 +55,8 @@
     { value: 'avg_5yr',     label: 'Rate (5yr avg)',  kind: 'numeric' },
     { value: 'avg_10yr',    label: 'Rate (10yr avg)', kind: 'numeric' },
     { value: 'avg_20yr',    label: 'Rate (20yr avg)', kind: 'numeric' },
-    { value: 'trend_5yr',   label: 'Trend (5yr)',     kind: 'numeric' },
-    { value: 'trend_10yr',  label: 'Trend (10yr)',    kind: 'numeric' },
+    { value: 'trend_5yr',   label: 'Slope (5yr)',     kind: 'numeric' },
+    { value: 'trend_10yr',  label: 'Slope (10yr)',    kind: 'numeric' },
     { value: 'peak_year',   label: 'Peak year',       kind: 'integer' },
   ];
 
@@ -110,41 +69,32 @@
   ];
 
   function buildRow(cond) {
-    // cond = {field, op, val} or {} for a blank row
     const row = document.createElement('div');
     row.className = 'cond-row';
     row.style.cssText = 'display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap;';
 
-    // Field selector
     const fieldSel = document.createElement('select');
     fieldSel.style.cssText = 'flex:0 1 160px; font-size:0.82rem; padding:0.2rem 0.4rem; margin:0;';
     fieldSel.innerHTML = '<option value="">— Field —</option>' +
       COND_FIELDS.map(f => `<option value="${f.value}"${cond.field === f.value ? ' selected' : ''}>${f.label}</option>`).join('');
 
-    // Operator selector
     const opSel = document.createElement('select');
     opSel.style.cssText = 'flex:0 1 60px; font-size:0.82rem; padding:0.2rem 0.3rem; margin:0;';
 
-    // Value input (swapped per kind)
     const valWrap = document.createElement('span');
     valWrap.style.cssText = 'flex:0 1 140px;';
 
-    // Remove button
     const rmBtn = document.createElement('button');
     rmBtn.type = 'button';
     rmBtn.textContent = '✕';
     rmBtn.style.cssText = 'flex:none; padding:0.2rem 0.4rem; font-size:0.8rem; margin:0;';
     rmBtn.className = 'outline secondary';
-    rmBtn.addEventListener('click', () => {
-      row.remove();
-      serializeConditions();
-    });
+    rmBtn.addEventListener('click', () => { row.remove(); serializeConditions(); });
 
     function updateForField(fieldVal, existingOp, existingVal) {
       const spec = COND_FIELDS.find(f => f.value === fieldVal);
       const kind = spec ? spec.kind : null;
 
-      // Rebuild op selector
       if (kind === 'numeric' || kind === 'integer') {
         opSel.innerHTML = NUM_OPS.map(o => `<option value="${o.value}"${existingOp === o.value ? ' selected' : ''}>${o.label}</option>`).join('');
         opSel.hidden = false;
@@ -153,13 +103,19 @@
         opSel.hidden = true;
       }
 
-      // Rebuild value widget
       valWrap.innerHTML = '';
       if (kind === 'gender') {
         const sel = document.createElement('select');
         sel.style.cssText = 'width:100%; font-size:0.82rem; padding:0.2rem 0.3rem; margin:0;';
         sel.innerHTML = '<option value="F"' + (existingVal === 'F' ? ' selected' : '') + '>Female (F/MF)</option>' +
                         '<option value="M"' + (existingVal === 'M' ? ' selected' : '') + '>Male (M/MF)</option>';
+        sel.addEventListener('change', serializeConditions);
+        valWrap.appendChild(sel);
+      } else if (kind === 'trend') {
+        const sel = document.createElement('select');
+        sel.style.cssText = 'width:100%; font-size:0.82rem; padding:0.2rem 0.3rem; margin:0;';
+        sel.innerHTML = '<option value="rising"' + (existingVal === 'rising' ? ' selected' : '') + '>Rising ↑</option>' +
+                        '<option value="falling"' + (existingVal === 'falling' ? ' selected' : '') + '>Falling ↓</option>';
         sel.addEventListener('change', serializeConditions);
         valWrap.appendChild(sel);
       } else if (kind === 'language') {
@@ -185,10 +141,7 @@
       }
     }
 
-    fieldSel.addEventListener('change', () => {
-      updateForField(fieldSel.value, null, null);
-      serializeConditions();
-    });
+    fieldSel.addEventListener('change', () => { updateForField(fieldSel.value, null, null); serializeConditions(); });
     opSel.addEventListener('change', serializeConditions);
 
     row.appendChild(fieldSel);
@@ -210,8 +163,7 @@
       const spec = COND_FIELDS.find(f => f.value === field);
       const kind = spec ? spec.kind : null;
 
-      let op = '';
-      let val = '';
+      let op = '', val = '';
 
       if (kind === 'numeric' || kind === 'integer') {
         const opSel = row.querySelectorAll('select')[1];
@@ -220,6 +172,9 @@
         val = inp?.value || '';
         if (!val) return;
       } else if (kind === 'gender') {
+        const sel = row.querySelectorAll('select')[1];
+        val = sel?.value || '';
+      } else if (kind === 'trend') {
         const sel = row.querySelectorAll('select')[1];
         val = sel?.value || '';
       } else if (kind === 'language') {
@@ -257,30 +212,17 @@
 
   function readFilters() {
     const panel = document.querySelector('.filter-panel form');
-    const search = document.querySelector('[name="search"]');
-    const tags = [...panel.querySelectorAll('[name="tags"] option')]
-      .filter(o => o.selected).map(o => o.value);
     return {
-      gender: (panel.querySelector('[name="gender"]:checked') || {}).value || '',
-      tags,
       hide_rated: panel.querySelector('[name="hide_rated"]')?.checked || false,
-      trend: (panel.querySelector('[name="trend"]:checked') || {}).value || '',
-      search: search?.value || '',
       conditions: document.getElementById('cond-json')?.value || '',
     };
   }
 
   function applyFilters(f) {
     const panel = document.querySelector('.filter-panel form');
-    const search = document.querySelector('[name="search"]');
-    panel.querySelectorAll('[name="gender"]').forEach(r => r.checked = r.value === (f.gender || ''));
-    panel.querySelectorAll('[name="tags"] option').forEach(o => o.selected = (f.tags || []).includes(o.value));
     const hr = panel.querySelector('[name="hide_rated"]');
     if (hr) hr.checked = !!f.hide_rated;
-    panel.querySelectorAll('[name="trend"]').forEach(r => r.checked = r.value === (f.trend || ''));
-    if (search) search.value = f.search || '';
     loadConditions(f.conditions || '');
-    // trigger htmx refresh
     panel.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
@@ -293,7 +235,6 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    // Load initial conditions from server-rendered value
     const initialConds = document.getElementById('cond-json')?.value || '';
     if (initialConds) loadConditions(initialConds);
 
