@@ -73,12 +73,23 @@ recent AS (
     JOIN max_year mx ON w.year = mx.y
 ),
 
--- Step 4: names active in last 5 years (avg_5yr > 0) for percentile base
+-- Step 4: rank among "common" names (avg_5yr >= 0.1, roughly ≥400 babies/yr
+--         nationally). Ranks names we actually care about; obscure one-offs get NULL.
 active AS (
     SELECT name FROM recent WHERE avg_5yr > 0
 ),
+common_ranked AS (
+    SELECT
+        name,
+        rank() OVER (ORDER BY rate         DESC NULLS LAST) AS rank_1yr,
+        rank() OVER (ORDER BY avg_5yr      DESC NULLS LAST) AS rank_5yr,
+        rank() OVER (ORDER BY avg_10yr     DESC NULLS LAST) AS rank_10yr,
+        rank() OVER (ORDER BY avg_20yr     DESC NULLS LAST) AS rank_20yr
+    FROM recent
+    WHERE avg_5yr >= 0.1
+),
 
--- Step 5: percentile rank within active names
+-- Step 5: assemble final rows; names below the threshold get NULL ranks
 ranked AS (
     SELECT
         r.name,
@@ -94,8 +105,12 @@ ranked AS (
              THEN r.avg_5yr / r.peak_rate
              ELSE NULL
         END                                              AS peak_ratio_5yr,
-        percent_rank() OVER (ORDER BY r.avg_5yr) * 100  AS popularity_pct_5yr
+        cr.rank_1yr,
+        cr.rank_5yr,
+        cr.rank_10yr,
+        cr.rank_20yr
     FROM recent r
+    LEFT JOIN common_ranked cr ON cr.name = r.name
     WHERE r.name IN (SELECT name FROM active)
 )
 
@@ -105,7 +120,10 @@ SELECT
     avg_5yr,
     avg_10yr,
     avg_20yr,
-    popularity_pct_5yr,
+    rank_1yr,
+    rank_5yr,
+    rank_10yr,
+    rank_20yr,
     peak_rate,
     peak_year,
     peak_ratio_5yr,
@@ -125,7 +143,8 @@ def load_popularity() -> None:
             cur.execute(f"""
                 INSERT INTO name_popularity (
                     name, recent_rate, avg_5yr, avg_10yr, avg_20yr,
-                    popularity_pct_5yr, peak_rate, peak_year,
+                    rank_1yr, rank_5yr, rank_10yr, rank_20yr,
+                    peak_rate, peak_year,
                     peak_ratio_5yr, trend_5yr, trend_10yr
                 )
                 {_COMPUTE_SQL}

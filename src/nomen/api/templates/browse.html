@@ -4,18 +4,46 @@
 {% block content %}
 <h2>Browse Names</h2>
 
-<input
-  type="search"
-  name="search"
-  value="{{ search }}"
-  placeholder="Search names…"
-  hx-get="/names"
-  hx-target="#name-list"
-  hx-trigger="keyup changed delay:100ms, search"
-  hx-include="[name='gender']:checked, [name='tags']:checked, [name='hide_rated']:checked, [name='trend']:checked, [name='popularity_min'], [name='popularity_max']"
-  autocomplete="off"
-  style="margin-bottom:1rem;"
->
+<div style="display:flex; gap:0.75rem; align-items:center; margin-bottom:1rem; flex-wrap:wrap;">
+  <input
+    type="search"
+    name="search"
+    value="{{ search }}"
+    placeholder="Search names…"
+    hx-get="/names"
+    hx-target="#name-list"
+    hx-trigger="keyup changed delay:100ms, search"
+    hx-include="[name='gender']:checked, [name='tags']:checked, [name='hide_rated']:checked, [name='trend']:checked, [name='popularity_min'], [name='popularity_max']"
+    autocomplete="off"
+    style="flex:1; min-width:160px; margin:0;"
+  >
+  <div class="col-picker-wrapper">
+    <button type="button" class="outline secondary col-picker-btn" style="white-space:nowrap;">Columns ▾</button>
+    <div class="col-picker-panel" hidden>
+      <p style="font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:#888; margin:0 0 0.4rem;">Columns</p>
+      <label><input type="checkbox" data-toggle-col="gender" checked> Gender</label>
+      <label><input type="checkbox" data-toggle-col="usage" checked> Language</label>
+      <label><input type="checkbox" data-toggle-col="meaning" checked> Meaning</label>
+      <label><input type="checkbox" data-toggle-col="rating" checked> Rating</label>
+      <hr style="margin:0.4rem 0;">
+      <p style="font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:#888; margin:0 0 0.4rem;">Rank (lower = more popular)</p>
+      <label><input type="checkbox" data-toggle-col="rank_1yr"> Rank, recent yr</label>
+      <label><input type="checkbox" data-toggle-col="rank_5yr"> Rank, 5yr avg</label>
+      <label><input type="checkbox" data-toggle-col="rank_10yr"> Rank, 10yr avg</label>
+      <label><input type="checkbox" data-toggle-col="rank_20yr"> Rank, 20yr avg</label>
+      <hr style="margin:0.4rem 0;">
+      <p style="font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:#888; margin:0 0 0.4rem;">Rate per 1,000 births</p>
+      <label><input type="checkbox" data-toggle-col="rate_recent"> Rate, recent yr</label>
+      <label><input type="checkbox" data-toggle-col="rate_5yr"> Rate, 5yr avg</label>
+      <label><input type="checkbox" data-toggle-col="rate_10yr"> Rate, 10yr avg</label>
+      <label><input type="checkbox" data-toggle-col="rate_20yr"> Rate, 20yr avg</label>
+      <hr style="margin:0.4rem 0;">
+      <p style="font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:#888; margin:0 0 0.4rem;">Trend (slope)</p>
+      <label><input type="checkbox" data-toggle-col="trend_5yr"> Slope, 5yr</label>
+      <label><input type="checkbox" data-toggle-col="trend_10yr"> Slope, 10yr</label>
+    </div>
+  </div>
+</div>
 
 {% set form_action = "/names" %}
 {% set form_target = "#name-list" %}
@@ -25,4 +53,72 @@
 <div id="name-list">
   {% include "partials/name_list.html" %}
 </div>
+
+<script>
+(function () {
+  const COL_KEY = 'nomen:col_visibility';
+
+  function getSaved() {
+    try { return JSON.parse(localStorage.getItem(COL_KEY) || 'null'); }
+    catch { return null; }
+  }
+
+  function applyCols(visible) {
+    // visible: Set of col names that should be shown
+    document.querySelectorAll('[data-col]').forEach(el => {
+      el.hidden = !visible.has(el.dataset.col);
+    });
+  }
+
+  function currentVisible() {
+    const s = new Set();
+    document.querySelectorAll('[data-toggle-col]').forEach(cb => {
+      if (cb.checked) s.add(cb.dataset.toggleCol);
+    });
+    s.add('name'); // name is always visible
+    return s;
+  }
+
+  function init() {
+    const saved = getSaved();
+    const checkboxes = document.querySelectorAll('[data-toggle-col]');
+
+    if (saved) {
+      checkboxes.forEach(cb => {
+        cb.checked = saved.includes(cb.dataset.toggleCol);
+      });
+    }
+    applyCols(currentVisible());
+
+    checkboxes.forEach(cb => {
+      cb.addEventListener('change', () => {
+        const vis = currentVisible();
+        applyCols(vis);
+        localStorage.setItem(COL_KEY, JSON.stringify([...vis]));
+      });
+    });
+
+    // Re-apply after htmx swaps in new rows
+    document.body.addEventListener('htmx:afterSwap', (e) => {
+      if (e.target.id === 'name-list') applyCols(currentVisible());
+    });
+
+    // Toggle dropdown
+    const btn = document.querySelector('.col-picker-btn');
+    const panel = document.querySelector('.col-picker-panel');
+    btn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      panel.hidden = !panel.hidden;
+    });
+    document.addEventListener('click', () => { if (panel) panel.hidden = true; });
+    panel?.addEventListener('click', e => e.stopPropagation());
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
 {% endblock %}

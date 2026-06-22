@@ -7,23 +7,33 @@
 <table>
   <thead>
     <tr>
-      <th>Name</th>
-      <th>Gender</th>
-      <th>Usage</th>
-      <th>Meaning</th>
-      <th>Rating</th>
+      <th data-col="name">Name</th>
+      <th data-col="gender">Gender</th>
+      <th data-col="usage">Language</th>
+      <th data-col="meaning">Meaning</th>
+      <th data-col="rank_1yr" title="Rank by most recent year's rate (among names with ≥0.1/1k avg)">Rank (1yr)</th>
+      <th data-col="rank_5yr" title="Rank by 5yr avg rate (among names with ≥0.1/1k avg)">Rank (5yr)</th>
+      <th data-col="rank_10yr" title="Rank by 10yr avg rate (among names with ≥0.1/1k avg)">Rank (10yr)</th>
+      <th data-col="rank_20yr" title="Rank by 20yr avg rate (among names with ≥0.1/1k avg)">Rank (20yr)</th>
+      <th data-col="rate_recent" title="Rate per 1,000 births, most recent year">Rate (recent)</th>
+      <th data-col="rate_5yr" title="Average rate per 1,000 births over last 5 years">Rate (5yr avg)</th>
+      <th data-col="rate_10yr" title="Average rate per 1,000 births over last 10 years">Rate (10yr avg)</th>
+      <th data-col="rate_20yr" title="Average rate per 1,000 births over last 20 years">Rate (20yr avg)</th>
+      <th data-col="trend_5yr" title="Slope of rate vs year over last 5 years (per 1k births/yr)">Trend (5yr)</th>
+      <th data-col="trend_10yr" title="Slope of rate vs year over last 10 years (per 1k births/yr)">Trend (10yr)</th>
+      <th data-col="rating">Rating</th>
     </tr>
   </thead>
   <tbody>
     {% for n in names %}
     <tr>
-      <td><strong><a href="/names/{{ n.name }}">{{ n.name | title }}</a></strong></td>
-      <td>
+      <td data-col="name"><strong><a href="/names/{{ n.name }}">{{ n.name | title }}</a></strong></td>
+      <td data-col="gender">
         {% if n.gender %}
         <span class="gender-badge gender-{{ n.gender }}">{{ n.gender }}</span>
         {% endif %}
       </td>
-      <td>
+      <td data-col="usage">
         {% if n.language_tags %}
         {% for tag in n.language_tags[:3] %}
         <span class="tag-pill">{{ tag }}</span>
@@ -33,11 +43,49 @@
         {% endif %}
         {% endif %}
       </td>
-      <td style="max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+      <td data-col="meaning" style="max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
           title="{{ n.meaning or '' }}">
         {{ n.meaning or '' }}
       </td>
-      <td>
+      <td data-col="rank_1yr" style="text-align:right; font-size:0.85rem;">
+        {% if n.rank_1yr is not none %}{{ n.rank_1yr }}{% endif %}
+      </td>
+      <td data-col="rank_5yr" style="text-align:right; font-size:0.85rem;">
+        {% if n.rank_5yr is not none %}{{ n.rank_5yr }}{% endif %}
+      </td>
+      <td data-col="rank_10yr" style="text-align:right; font-size:0.85rem;">
+        {% if n.rank_10yr is not none %}{{ n.rank_10yr }}{% endif %}
+      </td>
+      <td data-col="rank_20yr" style="text-align:right; font-size:0.85rem;">
+        {% if n.rank_20yr is not none %}{{ n.rank_20yr }}{% endif %}
+      </td>
+      <td data-col="rate_recent" style="text-align:right; font-size:0.85rem;">
+        {% if n.recent_rate is not none %}{{ "%.2f"|format(n.recent_rate) }}{% endif %}
+      </td>
+      <td data-col="rate_5yr" style="text-align:right; font-size:0.85rem;">
+        {% if n.avg_5yr is not none %}{{ "%.2f"|format(n.avg_5yr) }}{% endif %}
+      </td>
+      <td data-col="rate_10yr" style="text-align:right; font-size:0.85rem;">
+        {% if n.avg_10yr is not none %}{{ "%.2f"|format(n.avg_10yr) }}{% endif %}
+      </td>
+      <td data-col="rate_20yr" style="text-align:right; font-size:0.85rem;">
+        {% if n.avg_20yr is not none %}{{ "%.2f"|format(n.avg_20yr) }}{% endif %}
+      </td>
+      <td data-col="trend_5yr" style="text-align:right; font-size:0.85rem;">
+        {% if n.trend_5yr is not none %}
+          <span style="color:{% if n.trend_5yr > 0.005 %}#4a9e4a{% elif n.trend_5yr < -0.005 %}#b94a4a{% else %}#888{% endif %}">
+            {{ "%+.3f"|format(n.trend_5yr) }}
+          </span>
+        {% endif %}
+      </td>
+      <td data-col="trend_10yr" style="text-align:right; font-size:0.85rem;">
+        {% if n.trend_10yr is not none %}
+          <span style="color:{% if n.trend_10yr > 0.005 %}#4a9e4a{% elif n.trend_10yr < -0.005 %}#b94a4a{% else %}#888{% endif %}">
+            {{ "%+.3f"|format(n.trend_10yr) }}
+          </span>
+        {% endif %}
+      </td>
+      <td data-col="rating">
         {% set mode = "browse" %}
         {% set name = n.name %}
         {% set user_rating = n.user_rating %}

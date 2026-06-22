@@ -37,7 +37,7 @@
       </fieldset>
 
       <fieldset>
-        <legend>Language / Usage</legend>
+        <legend>Language</legend>
         <select name="tags" multiple size="5">
           {% for t in all_tags %}
           <option value="{{ t }}" {% if t in tags %}selected{% endif %}>{{ t }}</option>
@@ -45,20 +45,8 @@
         </select>
       </fieldset>
 
-      <fieldset>
-        <legend>Popularity (percentile)</legend>
-        <div style="display:flex; gap:0.5rem; align-items:center;">
-          <input type="number" name="popularity_min" min="0" max="100" step="1"
-                 value="{{ popularity_min or '' }}" placeholder="Min" style="width:80px;">
-          <span>–</span>
-          <input type="number" name="popularity_max" min="0" max="100" step="1"
-                 value="{{ popularity_max or '' }}" placeholder="Max" style="width:80px;">
-        </div>
-        <small style="color:#888;">0 = rarest, 100 = most popular</small>
-      </fieldset>
-
-      <fieldset>
-        <legend>Trend (last 5 years)</legend>
+<fieldset>
+        <legend>Trend (5yr)</legend>
         <label>
           <input type="radio" name="trend" value="" {% if not trend %}checked{% endif %}>
           Any
