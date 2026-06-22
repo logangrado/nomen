@@ -15,7 +15,7 @@
   <form
     hx-get="{{ form_action }}"
     hx-target="{{ form_target }}"
-    hx-trigger="{{ form_trigger }}"
+    hx-trigger="submit"
     hx-include="[name='search'],[name='conditions']"
     hx-push-url="true"
   >
@@ -30,7 +30,10 @@
     {# Advanced condition builder #}
     <div style="margin-top:0.75rem;">
       <div id="cond-rows" style="display:flex; flex-direction:column; gap:0.4rem;"></div>
-      <button type="button" id="cond-add" class="outline secondary" style="margin-top:0.4rem; font-size:0.82rem; padding:0.2rem 0.6rem;">+ Add condition</button>
+      <div style="display:flex; gap:0.5rem; align-items:center; margin-top:0.5rem; flex-wrap:wrap;">
+        <button type="button" id="cond-add" class="outline secondary" style="font-size:0.82rem; padding:0.2rem 0.6rem; margin:0;">+ Add condition</button>
+        <button type="submit" style="font-size:0.82rem; padding:0.2rem 0.8rem; margin:0;">Apply</button>
+      </div>
     </div>
 
     {# Hidden input that carries serialized conditions to server #}
