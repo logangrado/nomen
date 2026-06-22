@@ -30,6 +30,9 @@ async def browse(
     tags: list[str] = Query(default=[]),
     hide_rated: bool = Query(default=False),
     search: str | None = Query(default=None),
+    popularity_min: float | None = Query(default=None),
+    popularity_max: float | None = Query(default=None),
+    trend: str | None = Query(default=None),
 ):
     all_tags = get_language_tags(conn)
     names = search_names(
@@ -39,6 +42,9 @@ async def browse(
         hide_rated_by=user_id if hide_rated else None,
         current_user=user_id,
         search=search or None,
+        popularity_min=popularity_min,
+        popularity_max=popularity_max,
+        trend=trend or None,
         limit=PAGE_SIZE,
     )
 
@@ -56,6 +62,9 @@ async def browse(
             "tags": tags,
             "hide_rated": hide_rated,
             "search": search or "",
+            "popularity_min": popularity_min,
+            "popularity_max": popularity_max,
+            "trend": trend or "",
             "truncated": truncated,
             "user_id": user_id,
         },
@@ -71,6 +80,9 @@ async def names_fragment(
     tags: list[str] = Query(default=[]),
     hide_rated: bool = Query(default=False),
     search: str | None = Query(default=None),
+    popularity_min: float | None = Query(default=None),
+    popularity_max: float | None = Query(default=None),
+    trend: str | None = Query(default=None),
 ):
     names = search_names(
         conn,
@@ -79,6 +91,9 @@ async def names_fragment(
         hide_rated_by=user_id if hide_rated else None,
         current_user=user_id,
         search=search or None,
+        popularity_min=popularity_min,
+        popularity_max=popularity_max,
+        trend=trend or None,
         limit=PAGE_SIZE,
     )
     truncated = len(names) == PAGE_SIZE
@@ -91,6 +106,9 @@ async def names_fragment(
             "tags": tags,
             "hide_rated": hide_rated,
             "search": search or "",
+            "popularity_min": popularity_min,
+            "popularity_max": popularity_max,
+            "trend": trend or "",
             "truncated": truncated,
             "user_id": user_id,
         },

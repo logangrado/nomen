@@ -10,7 +10,8 @@ from nomen.queries import get_matches, get_user_ratings
 router = APIRouter()
 templates = Jinja2Templates(directory=Path(__file__).parent.parent / "templates")
 
-RATING_ORDER = ["love", "like", "dislike", "hate"]
+RATING_ORDER = [2, 1, -1, -2]
+RATING_LABELS = {2: "Love", 1: "Like", -1: "Dislike", -2: "Definitely not"}
 
 
 @router.get("/matches")
@@ -25,7 +26,7 @@ async def matches_page(
     return templates.TemplateResponse(
         request,
         "matches.html",
-        {"matches": matches, "user_id": user_id, "other": other},
+        {"matches": matches, "user_id": user_id, "other": other, "rating_labels": RATING_LABELS},
     )
 
 
@@ -34,7 +35,7 @@ async def my_ratings_page(
     request: Request,
     user_id: str = Depends(require_user),
     conn=Depends(get_db),
-    rating: str | None = Query(default=None),
+    rating: int | None = Query(default=None),
 ):
     ratings = get_user_ratings(conn, user_id, rating=rating)
     # Group by rating value for display
@@ -50,5 +51,6 @@ async def my_ratings_page(
             "active_rating": rating,
             "user_id": user_id,
             "rating_order": RATING_ORDER,
+            "rating_labels": RATING_LABELS,
         },
     )

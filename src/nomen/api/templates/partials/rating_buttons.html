@@ -1,8 +1,8 @@
 {# Rating buttons — can be rendered standalone (htmx swap target).
-   Required context: name, user_rating (current rating or None), mode ("browse"|"random")
+   Required context: name, user_rating (current rating int or None), mode ("browse"|"random")
    Optional: gender, tags, hide_rated (carried along for random/next fetch) #}
 <div class="rating-buttons">
-  {% for value, label in [('love','♥ Love'), ('like','👍 Like'), ('dislike','👎 Dislike'), ('hate','🚫 Hate')] %}
+  {% for value, label in [(-2,'✗ Definitely not'), (-1,'👎 Dislike'), (1,'👍 Like'), (2,'♥ Love')] %}
   <form
     hx-post="/rate"
     hx-target="closest .rating-buttons"
@@ -16,7 +16,7 @@
     {% if hide_rated %}<input type="hidden" name="hide_rated" value="true">{% endif %}
     <button
       type="submit"
-      class="{% if value in ('love','like') %}{% else %}secondary {% endif %}{% if user_rating == value %}active{% endif %}"
+      class="{% if value < 0 %}secondary {% endif %}{% if user_rating == value %}active{% endif %}"
     >{{ label }}</button>
   </form>
   {% endfor %}

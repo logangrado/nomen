@@ -96,7 +96,7 @@ def test_search_names_language_tags(conn):
 
 def test_search_names_hide_rated(conn):
     _seed(conn)
-    upsert_rating(conn, "ada", "alice", "love")
+    upsert_rating(conn, "ada", "alice", 2)
     rows = search_names(conn, hide_rated_by="alice")
     names = [r["name"] for r in rows]
     assert "ada" not in names
@@ -105,10 +105,10 @@ def test_search_names_hide_rated(conn):
 
 def test_search_names_current_user_rating(conn):
     _seed(conn)
-    upsert_rating(conn, "ada", "alice", "like")
+    upsert_rating(conn, "ada", "alice", 1)
     rows = search_names(conn, current_user="alice")
     ada_row = next(r for r in rows if r["name"] == "ada")
-    assert ada_row["user_rating"] == "like"
+    assert ada_row["user_rating"] == 1
     boris_row = next(r for r in rows if r["name"] == "boris")
     assert boris_row["user_rating"] is None
 
@@ -128,7 +128,7 @@ def test_random_name_none_when_all_filtered(conn):
     _seed(conn)
     # All names rated by alice
     for name in ("ada", "boris", "zara", "milan"):
-        upsert_rating(conn, name, "alice", "dislike")
+        upsert_rating(conn, name, "alice", -1)
     result = random_name(conn, hide_rated_by="alice")
     assert result is None
 
@@ -147,21 +147,21 @@ def test_random_name_gender_filter(conn):
 
 def test_upsert_rating_insert(conn):
     _seed(conn)
-    upsert_rating(conn, "ada", "alice", "love")
+    upsert_rating(conn, "ada", "alice", 2)
     with conn.cursor() as cur:
         cur.execute("SELECT rating FROM ratings WHERE name='ada' AND user_id='alice'")
         row = cur.fetchone()
-    assert row[0] == "love"
+    assert row[0] == 2
 
 
 def test_upsert_rating_update(conn):
     _seed(conn)
-    upsert_rating(conn, "ada", "alice", "love")
-    upsert_rating(conn, "ada", "alice", "like")  # re-rate
+    upsert_rating(conn, "ada", "alice", 2)
+    upsert_rating(conn, "ada", "alice", 1)  # re-rate
     with conn.cursor() as cur:
         cur.execute("SELECT rating FROM ratings WHERE name='ada' AND user_id='alice'")
         row = cur.fetchone()
-    assert row[0] == "like"
+    assert row[0] == 1
 
 
 # ---------------------------------------------------------------------------
@@ -175,8 +175,8 @@ def test_get_matches_empty(conn):
 
 def test_get_matches_both_love(conn):
     _seed(conn)
-    upsert_rating(conn, "ada", "alice", "love")
-    upsert_rating(conn, "ada", "bob", "love")
+    upsert_rating(conn, "ada", "alice", 2)
+    upsert_rating(conn, "ada", "bob", 2)
     matches = get_matches(conn, "alice", "bob")
     assert len(matches) == 1
     assert matches[0]["name"] == "ada"
@@ -185,8 +185,8 @@ def test_get_matches_both_love(conn):
 
 def test_get_matches_love_like(conn):
     _seed(conn)
-    upsert_rating(conn, "ada", "alice", "love")
-    upsert_rating(conn, "ada", "bob", "like")
+    upsert_rating(conn, "ada", "alice", 2)
+    upsert_rating(conn, "ada", "bob", 1)
     matches = get_matches(conn, "alice", "bob")
     assert len(matches) == 1
     assert matches[0]["match_rank"] == 2  # love+like
@@ -194,18 +194,18 @@ def test_get_matches_love_like(conn):
 
 def test_get_matches_excludes_dislike(conn):
     _seed(conn)
-    upsert_rating(conn, "ada", "alice", "love")
-    upsert_rating(conn, "ada", "bob", "dislike")
+    upsert_rating(conn, "ada", "alice", 2)
+    upsert_rating(conn, "ada", "bob", -1)
     matches = get_matches(conn, "alice", "bob")
     assert matches == []
 
 
 def test_get_matches_sorted_by_strength(conn):
     _seed(conn)
-    upsert_rating(conn, "ada", "alice", "like")
-    upsert_rating(conn, "ada", "bob", "like")
-    upsert_rating(conn, "boris", "alice", "love")
-    upsert_rating(conn, "boris", "bob", "love")
+    upsert_rating(conn, "ada", "alice", 1)
+    upsert_rating(conn, "ada", "bob", 1)
+    upsert_rating(conn, "boris", "alice", 2)
+    upsert_rating(conn, "boris", "bob", 2)
     matches = get_matches(conn, "alice", "bob")
     assert len(matches) == 2
     assert matches[0]["name"] == "boris"  # love+love first
@@ -218,8 +218,8 @@ def test_get_matches_sorted_by_strength(conn):
 
 def test_get_user_ratings(conn):
     _seed(conn)
-    upsert_rating(conn, "ada", "alice", "love")
-    upsert_rating(conn, "boris", "alice", "dislike")
+    upsert_rating(conn, "ada", "alice", 2)
+    upsert_rating(conn, "boris", "alice", -1)
     rows = get_user_ratings(conn, "alice")
     names = [r["name"] for r in rows]
     assert "ada" in names
@@ -228,9 +228,9 @@ def test_get_user_ratings(conn):
 
 def test_get_user_ratings_filtered(conn):
     _seed(conn)
-    upsert_rating(conn, "ada", "alice", "love")
-    upsert_rating(conn, "boris", "alice", "dislike")
-    rows = get_user_ratings(conn, "alice", rating="love")
+    upsert_rating(conn, "ada", "alice", 2)
+    upsert_rating(conn, "boris", "alice", -1)
+    rows = get_user_ratings(conn, "alice", rating=2)
     assert len(rows) == 1
     assert rows[0]["name"] == "ada"
 

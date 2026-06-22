@@ -95,8 +95,8 @@ ratings = Table(
     Column("user_id", Text, nullable=False),
     Column(
         "rating",
-        Text,
-        CheckConstraint("rating IN ('love','like','dislike','hate')"),
+        SmallInteger,
+        CheckConstraint("rating IN (2, 1, -1, -2)"),
     ),
     Column(
         "created_at",

@@ -234,9 +234,9 @@ def get_name_detail(conn: psycopg.Connection, name: str) -> dict | None:
 
 
 def upsert_rating(
-    conn: psycopg.Connection, name: str, user_id: str, rating: str
+    conn: psycopg.Connection, name: str, user_id: str, rating: int
 ) -> None:
-    """Insert or update a rating. rating must be love/like/dislike/hate."""
+    """Insert or update a rating. rating must be 2 (love), 1 (like), -1 (dislike), -2 (definitely not)."""
     with conn.cursor() as cur:
         cur.execute(
             """
@@ -264,16 +264,16 @@ def get_matches(
                 r1.rating AS user1_rating,
                 r2.rating AS user2_rating,
                 CASE
-                    WHEN r1.rating = 'love' AND r2.rating = 'love' THEN 1
-                    WHEN r1.rating = 'love' OR  r2.rating = 'love' THEN 2
+                    WHEN r1.rating = 2 AND r2.rating = 2 THEN 1
+                    WHEN r1.rating = 2 OR  r2.rating = 2 THEN 2
                     ELSE 3
                 END AS match_rank
             FROM ratings r1
             JOIN ratings r2 ON r2.name = r1.name AND r2.user_id = %s
             LEFT JOIN name_meta nm ON nm.name = r1.name
             WHERE r1.user_id = %s
-              AND r1.rating IN ('love', 'like')
-              AND r2.rating IN ('love', 'like')
+              AND r1.rating > 0
+              AND r2.rating > 0
             ORDER BY match_rank, r1.name
             """,
             (user2, user1),
@@ -284,7 +284,7 @@ def get_matches(
 def get_user_ratings(
     conn: psycopg.Connection,
     user_id: str,
-    rating: str | None = None,
+    rating: int | None = None,
 ) -> list[dict]:
     """Return all ratings for a user, optionally filtered to a specific rating value."""
     with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:

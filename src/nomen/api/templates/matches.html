@@ -38,10 +38,10 @@
         {{ m.meaning or '' }}
       </td>
       <td>
-        <span class="tag-pill">{{ m.user1_rating }}</span>
+        <span class="tag-pill">{{ rating_labels[m.user1_rating] }}</span>
       </td>
       <td>
-        <span class="tag-pill">{{ m.user2_rating }}</span>
+        <span class="tag-pill">{{ rating_labels[m.user2_rating] }}</span>
       </td>
     </tr>
     {% endfor %}

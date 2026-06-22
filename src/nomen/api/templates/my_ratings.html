@@ -10,7 +10,7 @@
     <li>
       <a href="/me/ratings?rating={{ r }}"
          {% if active_rating == r %}class="active"{% endif %}>
-        {{ r | title }} ({{ grouped[r] | length }})
+        {{ rating_labels[r] }} ({{ grouped[r] | length }})
       </a>
     </li>
     {% endfor %}
@@ -22,7 +22,7 @@
 {% for r in display_groups %}
 {% set items = grouped[r] %}
 {% if items %}
-<h3>{{ r | title }}</h3>
+<h3>{{ rating_labels[r] }}</h3>
 <table>
   <thead>
     <tr><th>Name</th><th>Gender</th><th>Usage</th><th>Meaning</th></tr>
