@@ -13,9 +13,20 @@
     .gender-M  { background: #d0e8ff; color: #1a4a7a; }
     .gender-F  { background: #ffd6e7; color: #7a1a3a; }
     .gender-MF { background: #e8d6ff; color: #4a1a7a; }
-    .rating-buttons { display: flex; gap: 0.4rem; flex-wrap: wrap; }
-    .rating-buttons button { padding: 0.25rem 0.6rem; font-size: 0.85rem; margin: 0; }
-    .rating-buttons button.active { outline: 2px solid currentColor; }
+    .rating-buttons { display: flex; gap: 0.25rem; flex-wrap: nowrap; }
+    .rating-buttons form { margin: 0; }
+    .rating-btn {
+      padding: 0.2rem 0.45rem; font-size: 1rem; margin: 0;
+      background: var(--pico-secondary-background, #444);
+      border: 1px solid transparent;
+      border-radius: 4px; cursor: pointer; opacity: 0.45;
+      transition: opacity 0.1s;
+    }
+    .rating-btn:hover { opacity: 0.8; }
+    .rating-active--2 { opacity: 1; background: #5a2a2a; border-color: #c0392b; }
+    .rating-active--1 { opacity: 1; background: #4a3a1a; border-color: #c07830; }
+    .rating-active-1  { opacity: 1; background: #1a3a4a; border-color: #2980b9; }
+    .rating-active-2  { opacity: 1; background: #1a3a1a; border-color: #27ae60; }
     .tag-pill { font-size: 0.75rem; background: #f0f0f0; border-radius: 12px;
                 padding: 0.1rem 0.5rem; display: inline-block; margin: 0.1rem; }
     /* ── Filter panel ────────────────────────────────────────── */

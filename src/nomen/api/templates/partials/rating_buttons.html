@@ -1,23 +1,16 @@
-{# Rating buttons — can be rendered standalone (htmx swap target).
-   Required context: name, user_rating (current rating int or None), mode ("browse"|"random")
-   Optional: gender, tags, hide_rated (carried along for random/next fetch) #}
+{# Rating buttons — compact icon-only strip.
+   Required context: name, user_rating (int or None), mode ("browse"|"random")
+   Optional: gender, tags, hide_rated #}
 <div class="rating-buttons">
-  {% for value, label in [(-2,'✗ Definitely not'), (-1,'👎 Dislike'), (1,'👍 Like'), (2,'♥ Love')] %}
-  <form
-    hx-post="/rate"
-    hx-target="closest .rating-buttons"
-    hx-swap="outerHTML"
-  >
+  {% for value, icon in [(-2,'✕'), (-1,'👎'), (1,'👍'), (2,'♥')] %}
+  <form hx-post="/rate" hx-target="closest .rating-buttons" hx-swap="outerHTML">
     <input type="hidden" name="name" value="{{ name }}">
     <input type="hidden" name="rating" value="{{ value }}">
     <input type="hidden" name="mode" value="{{ mode }}">
     {% if gender %}<input type="hidden" name="gender" value="{{ gender }}">{% endif %}
     {% for t in (tags or []) %}<input type="hidden" name="tags" value="{{ t }}">{% endfor %}
     {% if hide_rated %}<input type="hidden" name="hide_rated" value="true">{% endif %}
-    <button
-      type="submit"
-      class="{% if value < 0 %}secondary {% endif %}{% if user_rating == value %}active{% endif %}"
-    >{{ label }}</button>
+    <button type="submit" class="rating-btn{% if user_rating == value %} rating-active-{{ value }}{% endif %}" title="{{ {-2:'Definitely not', -1:'Dislike', 1:'Like', 2:'Love'}[value] }}">{{ icon }}</button>
   </form>
   {% endfor %}
 </div>
