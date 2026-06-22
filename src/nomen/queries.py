@@ -2,6 +2,79 @@
 import psycopg
 import psycopg.rows
 
+# ---------------------------------------------------------------------------
+# Condition builder support
+# ---------------------------------------------------------------------------
+
+# Whitelisted fields for advanced conditions: (kind, sql_col)
+# kind: "numeric" | "integer" | "gender" | "language"
+_COND_FIELDS: dict[str, tuple[str, str]] = {
+    "gender":      ("gender",   "nm.gender"),
+    "language":    ("language", "nm.language_tags"),
+    "recent_rate": ("numeric",  "np.recent_rate"),
+    "avg_5yr":     ("numeric",  "np.avg_5yr"),
+    "avg_10yr":    ("numeric",  "np.avg_10yr"),
+    "avg_20yr":    ("numeric",  "np.avg_20yr"),
+    "rank_1yr":    ("integer",  "np.rank_1yr"),
+    "rank_5yr":    ("integer",  "np.rank_5yr"),
+    "rank_10yr":   ("integer",  "np.rank_10yr"),
+    "rank_20yr":   ("integer",  "np.rank_20yr"),
+    "trend_5yr":   ("numeric",  "np.trend_5yr"),
+    "trend_10yr":  ("numeric",  "np.trend_10yr"),
+    "peak_year":   ("integer",  "np.peak_year"),
+}
+
+_COND_OPS: dict[str, str] = {
+    "gte": ">=", "lte": "<=", "gt": ">", "lt": "<", "eq": "=",
+}
+
+
+def _apply_conditions(
+    conds: list[dict],
+    sql_fragments: list[str],
+    params: dict,
+) -> None:
+    """Append safe SQL fragments for each validated condition.
+
+    Each cond dict: {"field": str, "op": str, "val": str | list[str]}
+    Mutates sql_fragments and params in place; silently skips invalid entries.
+    """
+    for i, cond in enumerate(conds):
+        field = cond.get("field", "")
+        op    = cond.get("op", "")
+        val   = cond.get("val", "")
+
+        spec = _COND_FIELDS.get(field)
+        if spec is None:
+            continue
+        kind, col = spec
+
+        if kind == "gender":
+            if val == "M":
+                sql_fragments.append("nm.gender IN ('M', 'MF')")
+            elif val == "F":
+                sql_fragments.append("nm.gender IN ('F', 'MF')")
+
+        elif kind == "language":
+            tags = [v.strip() for v in val.split(",")] if isinstance(val, str) else list(val)
+            tags = [t for t in tags if t]
+            if tags:
+                pkey = f"cond_lang_{i}"
+                sql_fragments.append(f"nm.language_tags && %({pkey})s")
+                params[pkey] = tags
+
+        elif kind in ("numeric", "integer"):
+            sql_op = _COND_OPS.get(op)
+            if not sql_op:
+                continue
+            try:
+                typed = float(val) if kind == "numeric" else int(val)
+            except (ValueError, TypeError):
+                continue
+            pkey = f"cond_{i}"
+            sql_fragments.append(f"{col} {sql_op} %({pkey})s")
+            params[pkey] = typed
+
 
 def get_language_tags(conn: psycopg.Connection) -> list[str]:
     """Return all distinct language tags in name_meta, sorted."""
@@ -22,6 +95,7 @@ def search_names(
     current_user: str | None = None,
     search: str | None = None,
     trend: str | None = None,
+    conditions_arg: list[dict] | None = None,
     sort_by: str = "name",
     sort_dir: str = "asc",
     limit: int = 50,
@@ -36,6 +110,7 @@ def search_names(
         current_user: user_id — include their current rating in results
         search: prefix filter on name (case-insensitive)
         trend: 'rising' (trend_5yr > 0) or 'falling' (trend_5yr < 0)
+        conditions_arg: list of {field, op, val} advanced filter conditions
         sort_by: column to sort by (whitelisted); sort_dir: 'asc' or 'desc'
         limit/offset: pagination
     """
@@ -53,27 +128,35 @@ def search_names(
             "AND r_cur.user_id = %(current_user)s"
         )
 
-    pop_join = ""
-    if trend:
-        pop_join = "LEFT JOIN name_popularity np ON np.name = n.name"
+    params = {
+        "limit": limit,
+        "offset": offset,
+        "language_tags": language_tags,
+        "hide_rated_by": hide_rated_by,
+        "current_user": current_user,
+        "search": f"{search.strip().lower()}%" if search else None,
+    }
 
-    conditions = []
+    sql_conditions = []
     if gender == "M":
-        conditions.append("nm.gender IN ('M', 'MF')")
+        sql_conditions.append("nm.gender IN ('M', 'MF')")
     elif gender == "F":
-        conditions.append("nm.gender IN ('F', 'MF')")
+        sql_conditions.append("nm.gender IN ('F', 'MF')")
     if language_tags:
-        conditions.append("nm.language_tags && %(language_tags)s")
+        sql_conditions.append("nm.language_tags && %(language_tags)s")
     if hide_rated_by:
-        conditions.append("r_hide.rating IS NULL")
+        sql_conditions.append("r_hide.rating IS NULL")
     if search:
-        conditions.append("n.name LIKE %(search)s")
+        sql_conditions.append("n.name LIKE %(search)s")
     if trend == "rising":
-        conditions.append("np.trend_5yr > 0")
+        sql_conditions.append("np.trend_5yr > 0")
     elif trend == "falling":
-        conditions.append("np.trend_5yr < 0")
+        sql_conditions.append("np.trend_5yr < 0")
 
-    where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+    if conditions_arg:
+        _apply_conditions(conditions_arg, sql_conditions, params)
+
+    where = ("WHERE " + " AND ".join(sql_conditions)) if sql_conditions else ""
 
     _SORT_COLS = {
         "name":        "n.name",
@@ -122,15 +205,6 @@ def search_names(
         ORDER BY {order_by}
         LIMIT %(limit)s OFFSET %(offset)s
     """
-
-    params = {
-        "limit": limit,
-        "offset": offset,
-        "language_tags": language_tags,
-        "hide_rated_by": hide_rated_by,
-        "current_user": current_user,
-        "search": f"{search.strip().lower()}%" if search else None,
-    }
 
     with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
         cur.execute(sql, params)

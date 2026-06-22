@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -10,6 +11,16 @@ router = APIRouter()
 templates = Jinja2Templates(directory=Path(__file__).parent.parent / "templates")
 
 PAGE_SIZE = 100
+
+
+def _parse_conditions(conditions: str | None) -> list[dict]:
+    if not conditions:
+        return []
+    try:
+        data = json.loads(conditions)
+        return data if isinstance(data, list) else []
+    except (json.JSONDecodeError, ValueError):
+        return []
 
 
 @router.get("/")
@@ -25,7 +36,9 @@ async def browse(
     sort: str = Query(default="name"),
     dir: str = Query(default="asc"),
     page: int = Query(default=1, ge=1),
+    conditions: str | None = Query(default=None),
 ):
+    conds = _parse_conditions(conditions)
     all_tags = get_language_tags(conn)
     offset = (page - 1) * PAGE_SIZE
     names = search_names(
@@ -36,6 +49,7 @@ async def browse(
         current_user=user_id,
         search=search or None,
         trend=trend or None,
+        conditions_arg=conds or None,
         sort_by=sort,
         sort_dir=dir,
         limit=PAGE_SIZE,
@@ -61,6 +75,7 @@ async def browse(
             "dir": dir,
             "page": page,
             "has_next": has_next,
+            "conditions": conditions or "",
             "user_id": user_id,
         },
     )
@@ -79,7 +94,9 @@ async def names_fragment(
     sort: str = Query(default="name"),
     dir: str = Query(default="asc"),
     page: int = Query(default=1, ge=1),
+    conditions: str | None = Query(default=None),
 ):
+    conds = _parse_conditions(conditions)
     offset = (page - 1) * PAGE_SIZE
     names = search_names(
         conn,
@@ -89,6 +106,7 @@ async def names_fragment(
         current_user=user_id,
         search=search or None,
         trend=trend or None,
+        conditions_arg=conds or None,
         sort_by=sort,
         sort_dir=dir,
         limit=PAGE_SIZE,
@@ -109,6 +127,7 @@ async def names_fragment(
             "dir": dir,
             "page": page,
             "has_next": has_next,
+            "conditions": conditions or "",
             "user_id": user_id,
         },
     )

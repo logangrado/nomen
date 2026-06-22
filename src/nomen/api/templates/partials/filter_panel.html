@@ -16,7 +16,7 @@
     hx-get="{{ form_action }}"
     hx-target="{{ form_target }}"
     hx-trigger="{{ form_trigger }}"
-    hx-include="[name='search']"
+    hx-include="[name='search'],[name='conditions']"
     hx-push-url="true"
   >
     <div class="filter-grid">
@@ -45,7 +45,7 @@
         </select>
       </fieldset>
 
-<fieldset>
+      <fieldset>
         <legend>Trend (5yr)</legend>
         <label>
           <input type="radio" name="trend" value="" {% if not trend %}checked{% endif %}>
@@ -68,12 +68,183 @@
         </label>
       </fieldset>
     </div>
+
+    {# Advanced condition builder #}
+    <div style="margin-top:0.75rem;">
+      <div id="cond-rows" style="display:flex; flex-direction:column; gap:0.4rem;"></div>
+      <button type="button" id="cond-add" class="outline secondary" style="margin-top:0.4rem; font-size:0.82rem; padding:0.2rem 0.6rem;">+ Add condition</button>
+    </div>
+
+    {# Hidden input that carries serialized conditions to server #}
+    <input type="hidden" name="conditions" id="cond-json" value="{{ conditions }}">
   </form>
 </details>
 
 <script>
 (function () {
   const STORAGE_KEY = 'nomen:filter_presets';
+
+  // ── Field definitions mirroring queries._COND_FIELDS ─────────────────
+  const COND_FIELDS = [
+    { value: 'gender',      label: 'Gender',         kind: 'gender' },
+    { value: 'language',    label: 'Language',        kind: 'language' },
+    { value: 'rank_1yr',    label: 'Rank (1yr)',      kind: 'integer' },
+    { value: 'rank_5yr',    label: 'Rank (5yr)',      kind: 'integer' },
+    { value: 'rank_10yr',   label: 'Rank (10yr)',     kind: 'integer' },
+    { value: 'rank_20yr',   label: 'Rank (20yr)',     kind: 'integer' },
+    { value: 'recent_rate', label: 'Rate (recent)',   kind: 'numeric' },
+    { value: 'avg_5yr',     label: 'Rate (5yr avg)',  kind: 'numeric' },
+    { value: 'avg_10yr',    label: 'Rate (10yr avg)', kind: 'numeric' },
+    { value: 'avg_20yr',    label: 'Rate (20yr avg)', kind: 'numeric' },
+    { value: 'trend_5yr',   label: 'Trend (5yr)',     kind: 'numeric' },
+    { value: 'trend_10yr',  label: 'Trend (10yr)',    kind: 'numeric' },
+    { value: 'peak_year',   label: 'Peak year',       kind: 'integer' },
+  ];
+
+  const NUM_OPS = [
+    { value: 'gte', label: '≥' },
+    { value: 'lte', label: '≤' },
+    { value: 'gt',  label: '>'  },
+    { value: 'lt',  label: '<'  },
+    { value: 'eq',  label: '='  },
+  ];
+
+  function buildRow(cond) {
+    // cond = {field, op, val} or {} for a blank row
+    const row = document.createElement('div');
+    row.className = 'cond-row';
+    row.style.cssText = 'display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap;';
+
+    // Field selector
+    const fieldSel = document.createElement('select');
+    fieldSel.style.cssText = 'flex:0 1 160px; font-size:0.82rem; padding:0.2rem 0.4rem; margin:0;';
+    fieldSel.innerHTML = '<option value="">— Field —</option>' +
+      COND_FIELDS.map(f => `<option value="${f.value}"${cond.field === f.value ? ' selected' : ''}>${f.label}</option>`).join('');
+
+    // Operator selector
+    const opSel = document.createElement('select');
+    opSel.style.cssText = 'flex:0 1 60px; font-size:0.82rem; padding:0.2rem 0.3rem; margin:0;';
+
+    // Value input (swapped per kind)
+    const valWrap = document.createElement('span');
+    valWrap.style.cssText = 'flex:0 1 140px;';
+
+    // Remove button
+    const rmBtn = document.createElement('button');
+    rmBtn.type = 'button';
+    rmBtn.textContent = '✕';
+    rmBtn.style.cssText = 'flex:none; padding:0.2rem 0.4rem; font-size:0.8rem; margin:0;';
+    rmBtn.className = 'outline secondary';
+    rmBtn.addEventListener('click', () => {
+      row.remove();
+      serializeConditions();
+    });
+
+    function updateForField(fieldVal, existingOp, existingVal) {
+      const spec = COND_FIELDS.find(f => f.value === fieldVal);
+      const kind = spec ? spec.kind : null;
+
+      // Rebuild op selector
+      if (kind === 'numeric' || kind === 'integer') {
+        opSel.innerHTML = NUM_OPS.map(o => `<option value="${o.value}"${existingOp === o.value ? ' selected' : ''}>${o.label}</option>`).join('');
+        opSel.hidden = false;
+      } else {
+        opSel.innerHTML = '';
+        opSel.hidden = true;
+      }
+
+      // Rebuild value widget
+      valWrap.innerHTML = '';
+      if (kind === 'gender') {
+        const sel = document.createElement('select');
+        sel.style.cssText = 'width:100%; font-size:0.82rem; padding:0.2rem 0.3rem; margin:0;';
+        sel.innerHTML = '<option value="F"' + (existingVal === 'F' ? ' selected' : '') + '>Female (F/MF)</option>' +
+                        '<option value="M"' + (existingVal === 'M' ? ' selected' : '') + '>Male (M/MF)</option>';
+        sel.addEventListener('change', serializeConditions);
+        valWrap.appendChild(sel);
+      } else if (kind === 'language') {
+        const tags = document.querySelector('[name="tags"]');
+        const allTags = tags ? [...tags.options].map(o => o.value) : [];
+        const existing = existingVal ? (Array.isArray(existingVal) ? existingVal : existingVal.split(',').map(s=>s.trim()).filter(Boolean)) : [];
+        const sel = document.createElement('select');
+        sel.multiple = true;
+        sel.size = Math.min(5, allTags.length || 3);
+        sel.style.cssText = 'width:100%; font-size:0.8rem; padding:0.15rem; margin:0;';
+        sel.innerHTML = allTags.map(t => `<option value="${t}"${existing.includes(t) ? ' selected' : ''}>${t}</option>`).join('');
+        sel.addEventListener('change', serializeConditions);
+        valWrap.appendChild(sel);
+      } else if (kind === 'numeric' || kind === 'integer') {
+        const inp = document.createElement('input');
+        inp.type = 'number';
+        if (kind === 'numeric') { inp.step = 'any'; }
+        inp.value = existingVal !== undefined ? existingVal : '';
+        inp.placeholder = 'value';
+        inp.style.cssText = 'width:100%; font-size:0.82rem; padding:0.2rem 0.3rem; margin:0; height:2rem;';
+        inp.addEventListener('input', serializeConditions);
+        valWrap.appendChild(inp);
+      }
+    }
+
+    fieldSel.addEventListener('change', () => {
+      updateForField(fieldSel.value, null, null);
+      serializeConditions();
+    });
+    opSel.addEventListener('change', serializeConditions);
+
+    row.appendChild(fieldSel);
+    row.appendChild(opSel);
+    row.appendChild(valWrap);
+    row.appendChild(rmBtn);
+
+    updateForField(cond.field || '', cond.op || '', cond.val !== undefined ? cond.val : '');
+    return row;
+  }
+
+  function serializeConditions() {
+    const rows = document.querySelectorAll('.cond-row');
+    const conds = [];
+    rows.forEach(row => {
+      const fieldSel = row.querySelector('select:first-child');
+      const field = fieldSel?.value;
+      if (!field) return;
+      const spec = COND_FIELDS.find(f => f.value === field);
+      const kind = spec ? spec.kind : null;
+
+      let op = '';
+      let val = '';
+
+      if (kind === 'numeric' || kind === 'integer') {
+        const opSel = row.querySelectorAll('select')[1];
+        op = opSel?.value || '';
+        const inp = row.querySelector('input[type="number"]');
+        val = inp?.value || '';
+        if (!val) return;
+      } else if (kind === 'gender') {
+        const sel = row.querySelectorAll('select')[1];
+        val = sel?.value || '';
+      } else if (kind === 'language') {
+        const sel = row.querySelectorAll('select')[1];
+        val = sel ? [...sel.selectedOptions].map(o => o.value).join(',') : '';
+        if (!val) return;
+      }
+
+      conds.push({ field, op, val });
+    });
+
+    const json = conds.length ? JSON.stringify(conds) : '';
+    document.getElementById('cond-json').value = json;
+  }
+
+  function loadConditions(condStr) {
+    const container = document.getElementById('cond-rows');
+    container.innerHTML = '';
+    let conds = [];
+    try { conds = condStr ? JSON.parse(condStr) : []; } catch {}
+    conds.forEach(c => container.appendChild(buildRow(c)));
+    serializeConditions();
+  }
+
+  // ── Presets ───────────────────────────────────────────────────────────
 
   function getPresets() {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
@@ -93,10 +264,9 @@
       gender: (panel.querySelector('[name="gender"]:checked') || {}).value || '',
       tags,
       hide_rated: panel.querySelector('[name="hide_rated"]')?.checked || false,
-      popularity_min: panel.querySelector('[name="popularity_min"]')?.value || '',
-      popularity_max: panel.querySelector('[name="popularity_max"]')?.value || '',
       trend: (panel.querySelector('[name="trend"]:checked') || {}).value || '',
       search: search?.value || '',
+      conditions: document.getElementById('cond-json')?.value || '',
     };
   }
 
@@ -107,12 +277,9 @@
     panel.querySelectorAll('[name="tags"] option').forEach(o => o.selected = (f.tags || []).includes(o.value));
     const hr = panel.querySelector('[name="hide_rated"]');
     if (hr) hr.checked = !!f.hide_rated;
-    const pmin = panel.querySelector('[name="popularity_min"]');
-    if (pmin) pmin.value = f.popularity_min || '';
-    const pmax = panel.querySelector('[name="popularity_max"]');
-    if (pmax) pmax.value = f.popularity_max || '';
     panel.querySelectorAll('[name="trend"]').forEach(r => r.checked = r.value === (f.trend || ''));
     if (search) search.value = f.search || '';
+    loadConditions(f.conditions || '');
     // trigger htmx refresh
     panel.dispatchEvent(new Event('change', { bubbles: true }));
   }
@@ -126,7 +293,15 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
+    // Load initial conditions from server-rendered value
+    const initialConds = document.getElementById('cond-json')?.value || '';
+    if (initialConds) loadConditions(initialConds);
+
     renderSelect();
+
+    document.getElementById('cond-add')?.addEventListener('click', () => {
+      document.getElementById('cond-rows').appendChild(buildRow({}));
+    });
 
     document.getElementById('filter-preset-select')?.addEventListener('change', function () {
       if (!this.value) return;
