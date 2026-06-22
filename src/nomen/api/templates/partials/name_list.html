@@ -17,7 +17,7 @@
   <tbody>
     {% for n in names %}
     <tr>
-      <td><strong>{{ n.name | title }}</strong></td>
+      <td><strong><a href="/names/{{ n.name }}">{{ n.name | title }}</a></strong></td>
       <td>
         {% if n.gender %}
         <span class="gender-badge gender-{{ n.gender }}">{{ n.gender }}</span>

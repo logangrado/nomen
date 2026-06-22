@@ -20,6 +20,7 @@ def search_names(
     language_tags: list[str] | None = None,
     hide_rated_by: str | None = None,
     current_user: str | None = None,
+    search: str | None = None,
     limit: int = 50,
     offset: int = 0,
 ) -> list[dict]:
@@ -30,6 +31,7 @@ def search_names(
         language_tags: filter to names where name_meta.language_tags overlaps
         hide_rated_by: user_id — exclude names already rated by this user
         current_user: user_id — include their current rating in results
+        search: prefix filter on name (case-insensitive)
         limit/offset: pagination
     """
     hide_join = ""
@@ -55,6 +57,8 @@ def search_names(
         conditions.append("nm.language_tags && %(language_tags)s")
     if hide_rated_by:
         conditions.append("r_hide.rating IS NULL")
+    if search:
+        conditions.append("n.name LIKE %(search)s")
 
     where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
@@ -82,6 +86,7 @@ def search_names(
         "language_tags": language_tags,
         "hide_rated_by": hide_rated_by,
         "current_user": current_user,
+        "search": f"{search.strip().lower()}%" if search else None,
     }
 
     with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
@@ -150,6 +155,30 @@ def random_name(
     with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
         cur.execute(sql, params)
         return cur.fetchone()
+
+
+def get_name_stats(conn: psycopg.Connection, name: str) -> list[dict]:
+    """Return yearly US national rate (per 1,000 same-gender births) for a name."""
+    with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
+        cur.execute(
+            """
+            SELECT
+                ns.year,
+                ns.gender,
+                round(ns.count::numeric / totals.total * 1000, 2) AS rate_per_1000
+            FROM name_stats ns
+            JOIN (
+                SELECT year, gender, sum(count) AS total
+                FROM name_stats
+                WHERE region_code = 'US'
+                GROUP BY year, gender
+            ) totals ON totals.year = ns.year AND totals.gender = ns.gender
+            WHERE ns.name = %s AND ns.region_code = 'US'
+            ORDER BY ns.year, ns.gender
+            """,
+            (name,),
+        )
+        return cur.fetchall()
 
 
 def get_name_detail(conn: psycopg.Connection, name: str) -> dict | None:

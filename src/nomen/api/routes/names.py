@@ -29,6 +29,7 @@ async def browse(
     gender: str | None = Query(default=None),
     tags: list[str] = Query(default=[]),
     hide_rated: bool = Query(default=False),
+    search: str | None = Query(default=None),
 ):
     all_tags = get_language_tags(conn)
     names = search_names(
@@ -37,6 +38,7 @@ async def browse(
         language_tags=tags or None,
         hide_rated_by=user_id if hide_rated else None,
         current_user=user_id,
+        search=search or None,
         limit=PAGE_SIZE,
     )
 
@@ -53,6 +55,7 @@ async def browse(
             "gender": gender,
             "tags": tags,
             "hide_rated": hide_rated,
+            "search": search or "",
             "truncated": truncated,
             "user_id": user_id,
         },
@@ -67,6 +70,7 @@ async def names_fragment(
     gender: str | None = Query(default=None),
     tags: list[str] = Query(default=[]),
     hide_rated: bool = Query(default=False),
+    search: str | None = Query(default=None),
 ):
     names = search_names(
         conn,
@@ -74,6 +78,7 @@ async def names_fragment(
         language_tags=tags or None,
         hide_rated_by=user_id if hide_rated else None,
         current_user=user_id,
+        search=search or None,
         limit=PAGE_SIZE,
     )
     truncated = len(names) == PAGE_SIZE
@@ -85,6 +90,7 @@ async def names_fragment(
             "gender": gender,
             "tags": tags,
             "hide_rated": hide_rated,
+            "search": search or "",
             "truncated": truncated,
             "user_id": user_id,
         },

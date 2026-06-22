@@ -4,6 +4,19 @@
 {% block content %}
 <h2>Browse Names</h2>
 
+<input
+  type="search"
+  name="search"
+  value="{{ search }}"
+  placeholder="Search names…"
+  hx-get="/names"
+  hx-target="#name-list"
+  hx-trigger="keyup changed delay:100ms, search"
+  hx-include="[name='gender']:checked, [name='tags']:checked, [name='hide_rated']:checked"
+  autocomplete="off"
+  style="margin-bottom:1rem;"
+>
+
 {% set form_action = "/names" %}
 {% set form_target = "#name-list" %}
 {% set form_trigger = "change" %}

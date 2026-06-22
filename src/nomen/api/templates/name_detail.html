@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}{{ detail.name | title }} — Nomen{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+  <ul>
+    <li><a href="/">Browse</a></li>
+    <li>{{ detail.name | title }}</li>
+  </ul>
+</nav>
+
+<hgroup>
+  <h1>
+    {{ detail.name | title }}
+    {% if detail.gender %}
+    <span class="gender-badge gender-{{ detail.gender }}" style="font-size:1rem; vertical-align:middle;">{{ detail.gender }}</span>
+    {% endif %}
+  </h1>
+  {% if detail.language_tags %}
+  <p>
+    {% for tag in detail.language_tags %}
+    <span class="tag-pill">{{ tag }}</span>
+    {% endfor %}
+  </p>
+  {% endif %}
+</hgroup>
+
+{% if detail.meaning %}
+<p>{{ detail.meaning }}</p>
+{% endif %}
+
+{% if detail.origin %}
+<p><strong>Origin:</strong> {{ detail.origin }}</p>
+{% endif %}
+
+{% if chart_data %}
+<h2>Popularity over time <small style="font-size:0.75rem; color:#888;">(US national, per 1,000 same-gender births)</small></h2>
+<div style="position:relative; height:300px;">
+  <canvas id="freq-chart"></canvas>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script>
+  const chartData = {{ chart_data | safe }};
+  new Chart(document.getElementById("freq-chart"), {
+    type: "line",
+    data: chartData,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { position: "top" },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)} per 1,000`
+          }
+        }
+      },
+      scales: {
+        x: { title: { display: true, text: "Year" } },
+        y: {
+          title: { display: true, text: "Per 1,000 births (same gender)" },
+          ticks: { callback: v => v.toFixed(2) }
+        }
+      }
+    }
+  });
+</script>
+{% else %}
+<p style="color:#888;">No frequency data available.</p>
+{% endif %}
+
+<hr>
+<h3>Your rating</h3>
+{% set mode = "browse" %}
+{% set tags = [] %}
+{% set hide_rated = false %}
+{% include "partials/rating_buttons.html" %}
+
+{% endblock %}
