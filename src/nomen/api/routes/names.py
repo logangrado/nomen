@@ -13,12 +13,14 @@ templates = Jinja2Templates(directory=Path(__file__).parent.parent / "templates"
 PAGE_SIZE = 200
 
 
-def _filter_params(
-    gender: str | None = Query(default=None),
-    tags: list[str] = Query(default=[]),
-    hide_rated: bool = Query(default=False),
-):
-    return {"gender": gender, "tags": tags, "hide_rated": hide_rated}
+def _float_or_none(v: str | None) -> float | None:
+    """Coerce query param to float, treating empty string as None."""
+    if v is None or v == "":
+        return None
+    try:
+        return float(v)
+    except ValueError:
+        return None
 
 
 @router.get("/")
@@ -30,10 +32,12 @@ async def browse(
     tags: list[str] = Query(default=[]),
     hide_rated: bool = Query(default=False),
     search: str | None = Query(default=None),
-    popularity_min: float | None = Query(default=None),
-    popularity_max: float | None = Query(default=None),
+    popularity_min: str | None = Query(default=None),
+    popularity_max: str | None = Query(default=None),
     trend: str | None = Query(default=None),
 ):
+    pop_min = _float_or_none(popularity_min)
+    pop_max = _float_or_none(popularity_max)
     all_tags = get_language_tags(conn)
     names = search_names(
         conn,
@@ -42,8 +46,8 @@ async def browse(
         hide_rated_by=user_id if hide_rated else None,
         current_user=user_id,
         search=search or None,
-        popularity_min=popularity_min,
-        popularity_max=popularity_max,
+        popularity_min=pop_min,
+        popularity_max=pop_max,
         trend=trend or None,
         limit=PAGE_SIZE,
     )
@@ -62,8 +66,8 @@ async def browse(
             "tags": tags,
             "hide_rated": hide_rated,
             "search": search or "",
-            "popularity_min": popularity_min,
-            "popularity_max": popularity_max,
+            "popularity_min": pop_min,
+            "popularity_max": pop_max,
             "trend": trend or "",
             "truncated": truncated,
             "user_id": user_id,
@@ -80,10 +84,12 @@ async def names_fragment(
     tags: list[str] = Query(default=[]),
     hide_rated: bool = Query(default=False),
     search: str | None = Query(default=None),
-    popularity_min: float | None = Query(default=None),
-    popularity_max: float | None = Query(default=None),
+    popularity_min: str | None = Query(default=None),
+    popularity_max: str | None = Query(default=None),
     trend: str | None = Query(default=None),
 ):
+    pop_min = _float_or_none(popularity_min)
+    pop_max = _float_or_none(popularity_max)
     names = search_names(
         conn,
         gender=gender or None,
@@ -91,8 +97,8 @@ async def names_fragment(
         hide_rated_by=user_id if hide_rated else None,
         current_user=user_id,
         search=search or None,
-        popularity_min=popularity_min,
-        popularity_max=popularity_max,
+        popularity_min=pop_min,
+        popularity_max=pop_max,
         trend=trend or None,
         limit=PAGE_SIZE,
     )
@@ -106,8 +112,8 @@ async def names_fragment(
             "tags": tags,
             "hide_rated": hide_rated,
             "search": search or "",
-            "popularity_min": popularity_min,
-            "popularity_max": popularity_max,
+            "popularity_min": pop_min,
+            "popularity_max": pop_max,
             "trend": trend or "",
             "truncated": truncated,
             "user_id": user_id,

@@ -1,70 +1,175 @@
-{# Filter panel — shared by browse and random views.
+{# Filter panel — collapsible <details>, closed by default.
    Caller must set: form_action, form_target, form_trigger, all_tags, gender, tags, hide_rated #}
-<details class="filter-panel" open>
+<details class="filter-panel">
   <summary>Filters</summary>
+
+  <div class="filter-presets">
+    <select id="filter-preset-select" aria-label="Load saved filter preset">
+      <option value="">— Load preset —</option>
+    </select>
+    <button type="button" id="filter-preset-delete" class="outline secondary" title="Delete preset">✕</button>
+    <span class="filter-presets-sep">|</span>
+    <input type="text" id="filter-preset-name" placeholder="Preset name…" aria-label="New preset name">
+    <button type="button" id="filter-preset-save" class="outline">Save</button>
+  </div>
   <form
     hx-get="{{ form_action }}"
     hx-target="{{ form_target }}"
     hx-trigger="{{ form_trigger }}"
-    hx-include="[name='search'], [name='popularity_min'], [name='popularity_max']"
+    hx-include="[name='search']"
     hx-push-url="true"
   >
-    <fieldset>
-      <legend>Gender</legend>
-      <label>
-        <input type="radio" name="gender" value="" {% if not gender %}checked{% endif %}>
-        Any
-      </label>
-      <label>
-        <input type="radio" name="gender" value="F" {% if gender == 'F' %}checked{% endif %}>
-        Girl (F / MF)
-      </label>
-      <label>
-        <input type="radio" name="gender" value="M" {% if gender == 'M' %}checked{% endif %}>
-        Boy (M / MF)
-      </label>
-    </fieldset>
+    <div class="filter-grid">
+      <fieldset>
+        <legend>Gender</legend>
+        <label>
+          <input type="radio" name="gender" value="" {% if not gender %}checked{% endif %}>
+          Any
+        </label>
+        <label>
+          <input type="radio" name="gender" value="F" {% if gender == 'F' %}checked{% endif %}>
+          Girl (F / MF)
+        </label>
+        <label>
+          <input type="radio" name="gender" value="M" {% if gender == 'M' %}checked{% endif %}>
+          Boy (M / MF)
+        </label>
+      </fieldset>
 
-    <fieldset>
-      <legend>Language / Usage</legend>
-      <select name="tags" multiple size="6">
-        {% for t in all_tags %}
-        <option value="{{ t }}" {% if t in tags %}selected{% endif %}>{{ t }}</option>
-        {% endfor %}
-      </select>
-    </fieldset>
+      <fieldset>
+        <legend>Language / Usage</legend>
+        <select name="tags" multiple size="5">
+          {% for t in all_tags %}
+          <option value="{{ t }}" {% if t in tags %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+      </fieldset>
 
-    <fieldset>
-      <legend>Popularity (percentile)</legend>
-      <div style="display:flex; gap:0.5rem; align-items:center;">
-        <input type="number" name="popularity_min" min="0" max="100" step="1"
-               value="{{ popularity_min or '' }}" placeholder="Min" style="width:80px;">
-        <span>–</span>
-        <input type="number" name="popularity_max" min="0" max="100" step="1"
-               value="{{ popularity_max or '' }}" placeholder="Max" style="width:80px;">
-      </div>
-      <small style="color:#888;">0 = rarest, 100 = most popular</small>
-    </fieldset>
+      <fieldset>
+        <legend>Popularity (percentile)</legend>
+        <div style="display:flex; gap:0.5rem; align-items:center;">
+          <input type="number" name="popularity_min" min="0" max="100" step="1"
+                 value="{{ popularity_min or '' }}" placeholder="Min" style="width:80px;">
+          <span>–</span>
+          <input type="number" name="popularity_max" min="0" max="100" step="1"
+                 value="{{ popularity_max or '' }}" placeholder="Max" style="width:80px;">
+        </div>
+        <small style="color:#888;">0 = rarest, 100 = most popular</small>
+      </fieldset>
 
-    <fieldset>
-      <legend>Trend (last 5 years)</legend>
-      <label>
-        <input type="radio" name="trend" value="" {% if not trend %}checked{% endif %}>
-        Any
-      </label>
-      <label>
-        <input type="radio" name="trend" value="rising" {% if trend == 'rising' %}checked{% endif %}>
-        Rising ↑
-      </label>
-      <label>
-        <input type="radio" name="trend" value="falling" {% if trend == 'falling' %}checked{% endif %}>
-        Falling ↓
-      </label>
-    </fieldset>
+      <fieldset>
+        <legend>Trend (last 5 years)</legend>
+        <label>
+          <input type="radio" name="trend" value="" {% if not trend %}checked{% endif %}>
+          Any
+        </label>
+        <label>
+          <input type="radio" name="trend" value="rising" {% if trend == 'rising' %}checked{% endif %}>
+          Rising ↑
+        </label>
+        <label>
+          <input type="radio" name="trend" value="falling" {% if trend == 'falling' %}checked{% endif %}>
+          Falling ↓
+        </label>
+      </fieldset>
 
-    <label>
-      <input type="checkbox" name="hide_rated" value="true" {% if hide_rated %}checked{% endif %}>
-      Hide names I've already rated
-    </label>
+      <fieldset style="border:none; padding:0;">
+        <label>
+          <input type="checkbox" name="hide_rated" value="true" {% if hide_rated %}checked{% endif %}>
+          Hide names I've already rated
+        </label>
+      </fieldset>
+    </div>
   </form>
 </details>
+
+<script>
+(function () {
+  const STORAGE_KEY = 'nomen:filter_presets';
+
+  function getPresets() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+    catch { return []; }
+  }
+
+  function savePresets(presets) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(presets));
+  }
+
+  function readFilters() {
+    const panel = document.querySelector('.filter-panel form');
+    const search = document.querySelector('[name="search"]');
+    const tags = [...panel.querySelectorAll('[name="tags"] option')]
+      .filter(o => o.selected).map(o => o.value);
+    return {
+      gender: (panel.querySelector('[name="gender"]:checked') || {}).value || '',
+      tags,
+      hide_rated: panel.querySelector('[name="hide_rated"]')?.checked || false,
+      popularity_min: panel.querySelector('[name="popularity_min"]')?.value || '',
+      popularity_max: panel.querySelector('[name="popularity_max"]')?.value || '',
+      trend: (panel.querySelector('[name="trend"]:checked') || {}).value || '',
+      search: search?.value || '',
+    };
+  }
+
+  function applyFilters(f) {
+    const panel = document.querySelector('.filter-panel form');
+    const search = document.querySelector('[name="search"]');
+    panel.querySelectorAll('[name="gender"]').forEach(r => r.checked = r.value === (f.gender || ''));
+    panel.querySelectorAll('[name="tags"] option').forEach(o => o.selected = (f.tags || []).includes(o.value));
+    const hr = panel.querySelector('[name="hide_rated"]');
+    if (hr) hr.checked = !!f.hide_rated;
+    const pmin = panel.querySelector('[name="popularity_min"]');
+    if (pmin) pmin.value = f.popularity_min || '';
+    const pmax = panel.querySelector('[name="popularity_max"]');
+    if (pmax) pmax.value = f.popularity_max || '';
+    panel.querySelectorAll('[name="trend"]').forEach(r => r.checked = r.value === (f.trend || ''));
+    if (search) search.value = f.search || '';
+    // trigger htmx refresh
+    panel.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  function renderSelect() {
+    const sel = document.getElementById('filter-preset-select');
+    if (!sel) return;
+    const presets = getPresets();
+    sel.innerHTML = '<option value="">— Load preset —</option>' +
+      presets.map((p, i) => `<option value="${i}">${p.name}</option>`).join('');
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    renderSelect();
+
+    document.getElementById('filter-preset-select')?.addEventListener('change', function () {
+      if (!this.value) return;
+      const preset = getPresets()[parseInt(this.value)];
+      if (preset) applyFilters(preset.filters);
+    });
+
+    document.getElementById('filter-preset-save')?.addEventListener('click', function () {
+      const nameEl = document.getElementById('filter-preset-name');
+      const name = nameEl.value.trim();
+      if (!name) { nameEl.focus(); return; }
+      const presets = getPresets();
+      const existing = presets.findIndex(p => p.name === name);
+      if (existing >= 0) {
+        presets[existing].filters = readFilters();
+      } else {
+        presets.push({ name, filters: readFilters() });
+      }
+      savePresets(presets);
+      renderSelect();
+      nameEl.value = '';
+    });
+
+    document.getElementById('filter-preset-delete')?.addEventListener('click', function () {
+      const sel = document.getElementById('filter-preset-select');
+      if (!sel.value) return;
+      const presets = getPresets();
+      presets.splice(parseInt(sel.value), 1);
+      savePresets(presets);
+      renderSelect();
+    });
+  });
+})();
+</script>
