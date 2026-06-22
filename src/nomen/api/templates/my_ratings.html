@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}My Ratings — Nomen{% endblock %}
+
+{% block content %}
+<h2>My Ratings</h2>
+
+<nav>
+  <ul>
+    {% for r in rating_order %}
+    <li>
+      <a href="/me/ratings?rating={{ r }}"
+         {% if active_rating == r %}class="active"{% endif %}>
+        {{ r | title }} ({{ grouped[r] | length }})
+      </a>
+    </li>
+    {% endfor %}
+    <li><a href="/me/ratings" {% if not active_rating %}class="active"{% endif %}>All</a></li>
+  </ul>
+</nav>
+
+{% set display_groups = [active_rating] if active_rating else rating_order %}
+{% for r in display_groups %}
+{% set items = grouped[r] %}
+{% if items %}
+<h3>{{ r | title }}</h3>
+<table>
+  <thead>
+    <tr><th>Name</th><th>Gender</th><th>Usage</th><th>Meaning</th></tr>
+  </thead>
+  <tbody>
+    {% for n in items %}
+    <tr>
+      <td><strong>{{ n.name | title }}</strong></td>
+      <td>
+        {% if n.gender %}
+        <span class="gender-badge gender-{{ n.gender }}">{{ n.gender }}</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if n.language_tags %}
+        {% for tag in n.language_tags[:3] %}
+        <span class="tag-pill">{{ tag }}</span>
+        {% endfor %}
+        {% endif %}
+      </td>
+      <td style="max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+        {{ n.meaning or '' }}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endfor %}
+
+{% if not matches %}
+{% set total = 0 %}
+{% for r in rating_order %}{% set total = total + grouped[r] | length %}{% endfor %}
+{% if total == 0 %}
+<p>You haven't rated any names yet. <a href="/random">Start rating!</a></p>
+{% endif %}
+{% endif %}
+{% endblock %}

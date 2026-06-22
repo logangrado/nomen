@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nomen — Who are you?</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <style>
+    .picker { max-width: 400px; margin: 4rem auto; text-align: center; }
+    .picker h1 { margin-bottom: 2rem; }
+    .picker .buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .picker button { font-size: 1.2rem; padding: 1rem 2.5rem; text-transform: capitalize; }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <div class="picker">
+      <h1>Who are you?</h1>
+      <div class="buttons">
+        <form method="post" action="/user/select">
+          <input type="hidden" name="user_id" value="{{ config.user1 }}">
+          <button type="submit">{{ config.user1 }}</button>
+        </form>
+        <form method="post" action="/user/select">
+          <input type="hidden" name="user_id" value="{{ config.user2 }}">
+          <button type="submit" class="secondary">{{ config.user2 }}</button>
+        </form>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

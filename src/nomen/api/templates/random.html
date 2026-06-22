@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Random — Nomen{% endblock %}
+
+{% block content %}
+<h2>Random Name</h2>
+
+{% set form_action = "/random/next" %}
+{% set form_target = "#name-card" %}
+{% set form_trigger = "change" %}
+{% include "partials/filter_panel.html" %}
+
+{% include "partials/name_card.html" %}
+{% endblock %}

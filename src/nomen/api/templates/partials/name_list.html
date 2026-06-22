@@ -1,0 +1,52 @@
+{# Name list fragment for browse mode.
+   Context: names, gender, tags, hide_rated, user_id, truncated (bool) #}
+{% if names %}
+<p class="muted" style="color:#666; font-size:0.9rem;">
+  Showing {{ names | length }} name{{ 's' if names | length != 1 }}{% if truncated %} (filtered — use filters to narrow down){% endif %}
+</p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Gender</th>
+      <th>Usage</th>
+      <th>Meaning</th>
+      <th>Rating</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for n in names %}
+    <tr>
+      <td><strong>{{ n.name | title }}</strong></td>
+      <td>
+        {% if n.gender %}
+        <span class="gender-badge gender-{{ n.gender }}">{{ n.gender }}</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if n.language_tags %}
+        {% for tag in n.language_tags[:3] %}
+        <span class="tag-pill">{{ tag }}</span>
+        {% endfor %}
+        {% if n.language_tags | length > 3 %}
+        <span class="tag-pill">+{{ n.language_tags | length - 3 }}</span>
+        {% endif %}
+        {% endif %}
+      </td>
+      <td style="max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+          title="{{ n.meaning or '' }}">
+        {{ n.meaning or '' }}
+      </td>
+      <td>
+        {% set mode = "browse" %}
+        {% set name = n.name %}
+        {% set user_rating = n.user_rating %}
+        {% include "partials/rating_buttons.html" %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No names match your filters.</p>
+{% endif %}

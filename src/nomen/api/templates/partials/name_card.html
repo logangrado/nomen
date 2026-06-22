@@ -1,0 +1,45 @@
+{# Single name card for random mode. Context: name (dict or None), gender, tags, hide_rated, user_id #}
+<div id="name-card">
+{% if name %}
+  <article>
+    <header>
+      <div style="display:flex; align-items:baseline; gap:0.75rem; flex-wrap:wrap;">
+        <span class="name-card-title">{{ name.name | title }}</span>
+        {% if name.gender %}
+        <span class="gender-badge gender-{{ name.gender }}">{{ name.gender }}</span>
+        {% endif %}
+      </div>
+      {% if name.language_tags %}
+      <div>
+        {% for tag in name.language_tags %}
+        <span class="tag-pill">{{ tag }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </header>
+
+    {% if name.meaning %}
+    <p>{{ name.meaning }}</p>
+    {% endif %}
+
+    <footer>
+      {% include "partials/rating_buttons.html" with context %}
+    </footer>
+  </article>
+{% else %}
+  <div class="exhausted">
+    <p>No more names match your filters.</p>
+    <a href="/random">Clear filters</a>
+  </div>
+{% endif %}
+</div>
+
+{% if name %}
+{# After a rating POST triggers "rated" event, fetch next card #}
+<div
+  hx-get="/random/next?{% if gender %}gender={{ gender }}&{% endif %}{% for t in (tags or []) %}tags={{ t }}&{% endfor %}{% if hide_rated %}hide_rated=true{% endif %}"
+  hx-trigger="rated from:body"
+  hx-target="#name-card"
+  hx-swap="outerHTML"
+></div>
+{% endif %}

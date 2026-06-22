@@ -1,0 +1,41 @@
+{# Filter panel — shared by browse and random views.
+   Caller must set: form_action, form_target, form_trigger, all_tags, gender, tags, hide_rated #}
+<details class="filter-panel" open>
+  <summary>Filters</summary>
+  <form
+    hx-get="{{ form_action }}"
+    hx-target="{{ form_target }}"
+    hx-trigger="{{ form_trigger }}"
+    hx-push-url="true"
+  >
+    <fieldset>
+      <legend>Gender</legend>
+      <label>
+        <input type="radio" name="gender" value="" {% if not gender %}checked{% endif %}>
+        Any
+      </label>
+      <label>
+        <input type="radio" name="gender" value="F" {% if gender == 'F' %}checked{% endif %}>
+        Girl (F / MF)
+      </label>
+      <label>
+        <input type="radio" name="gender" value="M" {% if gender == 'M' %}checked{% endif %}>
+        Boy (M / MF)
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Language / Usage</legend>
+      <select name="tags" multiple size="6">
+        {% for t in all_tags %}
+        <option value="{{ t }}" {% if t in tags %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </fieldset>
+
+    <label>
+      <input type="checkbox" name="hide_rated" value="true" {% if hide_rated %}checked{% endif %}>
+      Hide names I've already rated
+    </label>
+  </form>
+</details>

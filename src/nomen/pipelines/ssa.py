@@ -8,8 +8,11 @@ Sources:
 """
 import io
 import os
+import re
 from pathlib import Path
 from zipfile import ZipFile
+
+_VALID_NAME = re.compile(r"^[a-z][a-z'\-]*$")
 
 import psycopg
 
@@ -71,8 +74,11 @@ def parse_national(zip_path: Path, verbose: bool = False):
                     if not line:
                         continue
                     name, gender, count = line.split(",")
+                    name = normalize_name(name)
+                    if not _VALID_NAME.match(name):
+                        continue
                     yield {
-                        "name": normalize_name(name),
+                        "name": name,
                         "source": "SSA",
                         "year": year,
                         "month": None,
@@ -105,8 +111,11 @@ def parse_states(zip_path: Path, verbose: bool = False):
                     state = state.strip()
                     if state not in USPS_TO_ISO:
                         continue
+                    name = normalize_name(name)
+                    if not _VALID_NAME.match(name):
+                        continue
                     yield {
-                        "name": normalize_name(name),
+                        "name": name,
                         "source": "SSA",
                         "year": int(year),
                         "month": None,

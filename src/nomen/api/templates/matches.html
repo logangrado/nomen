@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Matches — Nomen{% endblock %}
+
+{% block content %}
+<h2>Matches</h2>
+<p>Names you and {{ other }} both liked.</p>
+
+{% if matches %}
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Gender</th>
+      <th>Usage</th>
+      <th>Meaning</th>
+      <th>You</th>
+      <th>{{ other | title }}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for m in matches %}
+    <tr>
+      <td><strong>{{ m.name | title }}</strong></td>
+      <td>
+        {% if m.gender %}
+        <span class="gender-badge gender-{{ m.gender }}">{{ m.gender }}</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if m.language_tags %}
+        {% for tag in m.language_tags[:3] %}
+        <span class="tag-pill">{{ tag }}</span>
+        {% endfor %}
+        {% endif %}
+      </td>
+      <td style="max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+          title="{{ m.meaning or '' }}">
+        {{ m.meaning or '' }}
+      </td>
+      <td>
+        <span class="tag-pill">{{ m.user1_rating }}</span>
+      </td>
+      <td>
+        <span class="tag-pill">{{ m.user2_rating }}</span>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No matches yet — go rate some names!</p>
+{% endif %}
+{% endblock %}

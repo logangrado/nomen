@@ -72,3 +72,9 @@ def lint(c):
 def fmt(c):
     """Auto-format with ruff."""
     c.run("ruff format src/ tests/")
+
+
+@task
+def serve(c):
+    """Start the web UI in dev mode (hot reload)."""
+    c.run("nomen serve", pty=True)

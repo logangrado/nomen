@@ -101,3 +101,43 @@ def test_parse_states_lowercases_name(tmp_path):
     zip_path = _make_zip({"TX.TXT": content}, tmp_path / "states.zip")
     rows = list(parse_states(zip_path))
     assert rows[0]["name"] == "james"
+
+
+# ---------------------------------------------------------------------------
+# Invalid name filtering (both parsers)
+# ---------------------------------------------------------------------------
+
+INVALID_NAMES = [
+    "02avdi02el",
+    "04ailani",
+    "A02isha",   # becomes a02isha after lowercase — digit in body
+    "A10bel",    # becomes a10bel
+    "02aziz",
+]
+
+VALID_NAMES = [
+    "Emma",        # plain
+    "MacKenzie",   # mixed case — lowercased to mackenzie
+    "Mary-Jane",   # hyphen
+    "O'Brien",     # apostrophe
+]
+
+
+def test_parse_national_filters_invalid_names(tmp_path):
+    lines = "\n".join(f"{n},F,100" for n in INVALID_NAMES + VALID_NAMES)
+    zip_path = _make_zip({"yob2020.txt": lines}, tmp_path / "names.zip")
+    rows = list(parse_national(zip_path))
+    returned = {r["name"] for r in rows}
+    for invalid in INVALID_NAMES:
+        assert invalid.lower() not in returned
+    assert len(rows) == len(VALID_NAMES)
+
+
+def test_parse_states_filters_invalid_names(tmp_path):
+    lines = "\n".join(f"CA,F,2020,{n},100" for n in INVALID_NAMES + VALID_NAMES)
+    zip_path = _make_zip({"CA.TXT": lines}, tmp_path / "states.zip")
+    rows = list(parse_states(zip_path))
+    returned = {r["name"] for r in rows}
+    for invalid in INVALID_NAMES:
+        assert invalid.lower() not in returned
+    assert len(rows) == len(VALID_NAMES)

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Nomen{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+  <style>
+    nav .brand { font-weight: bold; font-size: 1.1rem; text-decoration: none; color: inherit; }
+    nav ul li a.active { font-weight: bold; }
+    .gender-badge { font-size: 0.75rem; padding: 0.1rem 0.4rem; border-radius: 4px; }
+    .gender-M  { background: #d0e8ff; color: #1a4a7a; }
+    .gender-F  { background: #ffd6e7; color: #7a1a3a; }
+    .gender-MF { background: #e8d6ff; color: #4a1a7a; }
+    .rating-buttons { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .rating-buttons button { padding: 0.25rem 0.6rem; font-size: 0.85rem; margin: 0; }
+    .rating-buttons button.active { outline: 2px solid currentColor; }
+    .tag-pill { font-size: 0.75rem; background: #f0f0f0; border-radius: 12px;
+                padding: 0.1rem 0.5rem; display: inline-block; margin: 0.1rem; }
+    .filter-panel { margin-bottom: 1.5rem; }
+    .load-more { text-align: center; margin-top: 1rem; }
+    #name-card { max-width: 600px; margin: 0 auto; }
+    .name-card-title { font-size: 2.5rem; margin-bottom: 0.25rem; }
+    .exhausted { text-align: center; padding: 2rem; color: #666; }
+  </style>
+</head>
+<body>
+  <nav class="container-fluid">
+    <ul>
+      <li><a class="brand" href="/">Nomen</a></li>
+    </ul>
+    <ul>
+      <li><a href="/" {% if request.url.path == '/' %}class="active"{% endif %}>Browse</a></li>
+      <li><a href="/random" {% if request.url.path == '/random' %}class="active"{% endif %}>Random</a></li>
+      <li><a href="/matches" {% if request.url.path == '/matches' %}class="active"{% endif %}>Matches</a></li>
+      <li><a href="/me/ratings" {% if request.url.path == '/me/ratings' %}class="active"{% endif %}>My Ratings</a></li>
+      {% if user_id %}
+      <li><a href="/user/logout">{{ user_id }} ↩</a></li>
+      {% endif %}
+    </ul>
+  </nav>
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
