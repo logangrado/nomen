@@ -6,7 +6,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from nomen.api.deps import get_db, require_user
-from nomen.queries import get_language_tags, random_name, search_names
+from nomen.queries import TAG_GROUPS, get_language_tags, random_name, search_names
 
 router = APIRouter()
 templates = Jinja2Templates(directory=Path(__file__).parent.parent / "templates")
@@ -67,6 +67,7 @@ async def browse(
         {
             "names": names,
             "all_tags": all_tags,
+            "tag_groups": list(TAG_GROUPS.keys()),
             "gender": gender,
             "tags": tags,
             "hide_rated": hide_rated,
@@ -123,6 +124,7 @@ async def names_fragment(
         "partials/name_list.html",
         {
             "names": names,
+            "tag_groups": list(TAG_GROUPS.keys()),
             "gender": gender,
             "tags": tags,
             "hide_rated": hide_rated,

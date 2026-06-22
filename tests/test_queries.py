@@ -2,6 +2,7 @@
 import pytest
 
 from nomen.queries import (
+    TAG_GROUPS,
     get_language_tags,
     get_matches,
     get_name_detail,
@@ -490,6 +491,35 @@ def test_conditions_trend(conn):
     assert "zara" in names
     assert "boris" not in names
     assert "milan" not in names  # NULL trend
+
+
+def test_conditions_region_slavic(conn):
+    _seed(conn)
+    # boris has ["Russian", "Bulgarian"] — both Slavic
+    # ada has ["English", "German"] — not Slavic
+    conds = [{"field": "region", "op": "", "val": "Slavic"}]
+    rows = search_names(conn, conditions_arg=conds)
+    names = [r["name"] for r in rows]
+    assert "boris" in names
+    assert "ada" not in names
+
+
+def test_conditions_region_germanic(conn):
+    _seed(conn)
+    # ada has ["English", "German"] — both Germanic
+    conds = [{"field": "region", "op": "", "val": "Germanic"}]
+    rows = search_names(conn, conditions_arg=conds)
+    names = [r["name"] for r in rows]
+    assert "ada" in names
+    assert "boris" not in names
+
+
+def test_conditions_region_unknown_ignored(conn):
+    _seed(conn)
+    conds = [{"field": "region", "op": "", "val": "Klingon"}]
+    rows = search_names(conn, conditions_arg=conds)
+    # Unknown group → condition skipped → all names returned
+    assert len(rows) == 4
 
 
 def test_conditions_combined_with_gender_filter(conn):

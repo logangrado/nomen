@@ -3,12 +3,92 @@ import psycopg
 import psycopg.rows
 
 # ---------------------------------------------------------------------------
+# Region groups — broad cultural/geographic tag bundles
+# ---------------------------------------------------------------------------
+
+TAG_GROUPS: dict[str, list[str]] = {
+    "Slavic": [
+        "Bosnian", "Bulgarian", "Belarusian", "Croatian", "Czech", "Macedonian",
+        "Medieval Czech", "Medieval Polish", "Medieval Slavic", "Old Church Slavic",
+        "Old Slavic", "Polish", "Russian", "Serbian", "Slovak", "Slovene",
+        "Sorbian", "Ukrainian", "Slavic Mythology",
+    ],
+    "Scandinavian / Norse": [
+        "Danish", "Faroese", "Greenlandic", "Icelandic", "Medieval Scandinavian",
+        "Norse Mythology", "Norwegian", "Old Danish", "Old Norse", "Old Swedish",
+        "Sami", "Swedish",
+    ],
+    "Germanic": [
+        "Afrikaans", "Anglo-Saxon", "Dutch", "Flemish", "Frankish", "Frisian",
+        "German", "Germanic", "Gothic", "Low German", "Lombardic", "Old Germanic",
+        "Upper German", "Vandalic", "Yiddish",
+    ],
+    "Celtic": [
+        "Breton", "Brythonic", "Celtic Mythology", "Cornish", "Gaulish",
+        "Irish", "Irish Mythology", "Manx", "Medieval Breton", "Medieval Irish",
+        "Medieval Welsh", "Old Celtic", "Old Irish", "Old Welsh", "Pictish",
+        "Scottish", "Scottish Gaelic", "Welsh", "Welsh Mythology",
+    ],
+    "Romance": [
+        "Asturian", "Catalan", "Corsican", "French", "Galician", "Italian",
+        "Medieval French", "Medieval Italian", "Medieval Occitan",
+        "Medieval Portuguese", "Medieval Spanish", "Moldovan", "Norman",
+        "Occitan", "Portuguese", "Romanian", "Sardinian", "Spanish", "Walloon",
+    ],
+    "Greek / Hellenic": [
+        "Ancient Greek", "Greek", "Greek Mythology", "Late Greek",
+    ],
+    "Biblical / Semitic": [
+        "Akkadian", "Ancient Aramaic", "Ancient Assyrian", "Ancient Egyptian",
+        "Arabic", "Babylonian", "Biblical Hebrew", "Coptic", "Early Jewish",
+        "Hebrew", "Jewish", "Phoenician", "Quranic", "Semitic Mythology",
+    ],
+    "Persian / Iranian": [
+        "Avestan", "Dari Persian", "Middle Persian", "Old Persian",
+        "Parthian", "Persian", "Persian Mythology",
+    ],
+    "Turkic / Central Asian": [
+        "Azerbaijani", "Kazakh", "Kyrgyz", "Medieval Turkic", "Ottoman Turkish",
+        "Pashto", "Tajik", "Tatar", "Turkish", "Turkmen", "Uyghur", "Uzbek",
+    ],
+    "South Asian": [
+        "Assamese", "Bengali", "Gujarati", "Hindi", "Kannada", "Malayalam",
+        "Marathi", "Nepali", "Odia", "Punjabi", "Sanskrit", "Sinhalese",
+        "Tamil", "Telugu", "Urdu",
+    ],
+    "East Asian": [
+        "Chinese", "Chinese Mythology", "Japanese", "Japanese Mythology",
+        "Korean", "Mongolian", "Tibetan", "Vietnamese",
+    ],
+    "African": [
+        "Akan", "Amharic", "Bemba", "Chewa", "Comorian", "Eastern African",
+        "Ethiopian", "Ewe", "Fula", "Ga", "Ganda", "Hausa", "Igbo",
+        "Igbo Mythology", "Kiga", "Kikuyu", "Kongo", "Luhya", "Luo", "Mbundu",
+        "Mwera", "Ndebele", "Oromo", "Shona", "Somali", "Sotho",
+        "Southern African", "Swahili", "Swazi", "Tigrinya", "Tswana", "Tuareg",
+        "Tumbuka", "Urhobo", "Western African", "Xhosa", "Yao", "Yoruba",
+        "Yoruba Mythology", "Zulu",
+    ],
+    "Indigenous American": [
+        "Algonquin", "Apache", "Aymara", "Aztec and Toltec Mythology",
+        "Cherokee", "Cheyenne", "Choctaw", "Comanche", "Cree", "Guarani",
+        "Inca Mythology", "Iroquois", "Mapuche", "Mayan", "Mayan Mythology",
+        "Mohawk", "Nahuatl", "Navajo", "Ojibwe", "Quechua", "Sioux", "Zapotec",
+    ],
+    "Pacific / Oceanic": [
+        "Cook Islands Māori", "Fijian", "Hawaiian", "Indigenous Australian",
+        "Māori", "Polynesian Mythology", "Samoan", "Tahitian", "Tongan",
+    ],
+}
+
+# ---------------------------------------------------------------------------
 # Condition builder support
 # ---------------------------------------------------------------------------
 
 # Whitelisted fields for advanced conditions: (kind, sql_col)
-# kind: "numeric" | "integer" | "gender" | "language"
+# kind: "numeric" | "integer" | "gender" | "language" | "trend" | "region"
 _COND_FIELDS: dict[str, tuple[str, str]] = {
+    "region":     ("region",   "nm.language_tags"),
     "gender":      ("gender",   "nm.gender"),
     "language":    ("language", "nm.language_tags"),
     "trend":       ("trend",    "np.trend_5yr"),
@@ -50,7 +130,14 @@ def _apply_conditions(
             continue
         kind, col = spec
 
-        if kind == "gender":
+        if kind == "region":
+            tags = TAG_GROUPS.get(val)
+            if tags:
+                pkey = f"cond_region_{i}"
+                sql_fragments.append(f"nm.language_tags && %({pkey})s")
+                params[pkey] = tags
+
+        elif kind == "gender":
             if val == "M":
                 sql_fragments.append("nm.gender IN ('M', 'MF')")
             elif val == "F":

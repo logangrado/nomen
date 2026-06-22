@@ -46,9 +46,12 @@
   const STORAGE_KEY = 'nomen:filter_presets';
 
   // ── Field definitions mirroring queries._COND_FIELDS ─────────────────
+  const TAG_GROUPS = {{ tag_groups | tojson }};
+
   const COND_FIELDS = [
-    { value: 'gender',      label: 'Gender',         kind: 'gender' },
-    { value: 'language',    label: 'Language',        kind: 'language' },
+    { value: 'region',      label: 'Region',          kind: 'region' },
+    { value: 'gender',      label: 'Gender',          kind: 'gender' },
+    { value: 'language',    label: 'Language (tag)',  kind: 'language' },
     { value: 'trend',       label: 'Trend (5yr)',     kind: 'trend' },
     { value: 'rank_1yr',    label: 'Rank (1yr)',      kind: 'integer' },
     { value: 'rank_5yr',    label: 'Rank (5yr)',      kind: 'integer' },
@@ -107,7 +110,15 @@
       }
 
       valWrap.innerHTML = '';
-      if (kind === 'gender') {
+      if (kind === 'region') {
+        const sel = document.createElement('select');
+        sel.style.cssText = 'width:100%; font-size:0.82rem; padding:0.2rem 0.3rem; margin:0;';
+        sel.innerHTML = TAG_GROUPS.map(g =>
+          `<option value="${g}"${existingVal === g ? ' selected' : ''}>${g}</option>`
+        ).join('');
+        sel.addEventListener('change', serializeConditions);
+        valWrap.appendChild(sel);
+      } else if (kind === 'gender') {
         const sel = document.createElement('select');
         sel.style.cssText = 'width:100%; font-size:0.82rem; padding:0.2rem 0.3rem; margin:0;';
         sel.innerHTML = '<option value="F"' + (existingVal === 'F' ? ' selected' : '') + '>Female (F/MF)</option>' +
@@ -174,10 +185,7 @@
         const inp = row.querySelector('input[type="number"]');
         val = inp?.value || '';
         if (!val) return;
-      } else if (kind === 'gender') {
-        const sel = row.querySelectorAll('select')[1];
-        val = sel?.value || '';
-      } else if (kind === 'trend') {
+      } else if (kind === 'region' || kind === 'gender' || kind === 'trend') {
         const sel = row.querySelectorAll('select')[1];
         val = sel?.value || '';
       } else if (kind === 'language') {
