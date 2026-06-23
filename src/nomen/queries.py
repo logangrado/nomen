@@ -445,6 +445,36 @@ def get_name_detail(conn: psycopg.Connection, name: str) -> dict | None:
         return cur.fetchone()
 
 
+def delete_rating(conn: psycopg.Connection, name: str, user_id: str) -> None:
+    """Remove a rating entirely (used by undo)."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "DELETE FROM ratings WHERE name = %s AND user_id = %s",
+            (name, user_id),
+        )
+    conn.commit()
+
+
+def get_name_for_card(conn: psycopg.Connection, name: str, current_user: str | None) -> dict | None:
+    """Fetch the fields needed to render a name card."""
+    rating_col = (
+        "(SELECT rating FROM ratings WHERE name = n.name AND user_id = %(user)s) AS user_rating"
+        if current_user
+        else "NULL::text AS user_rating"
+    )
+    with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
+        cur.execute(
+            f"""
+            SELECT n.name, nm.gender, nm.meaning, nm.language_tags, {rating_col}
+            FROM names n
+            LEFT JOIN name_meta nm ON nm.name = n.name
+            WHERE n.name = %(name)s
+            """,
+            {"name": name, "user": current_user},
+        )
+        return cur.fetchone()
+
+
 def upsert_rating(
     conn: psycopg.Connection, name: str, user_id: str, rating: int
 ) -> None:

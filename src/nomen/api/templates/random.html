@@ -9,5 +9,43 @@
 {% set form_target = "#name-card" %}
 {% include "partials/filter_panel.html" %}
 
+<div style="text-align:center; margin-bottom:0.5rem;">
+  <button id="random-back" class="outline secondary" disabled
+          style="font-size:0.85rem; padding:0.2rem 0.7rem;">← Back</button>
+</div>
+
 {% include "partials/name_card.html" %}
+
+<script>
+(function () {
+  const history = [];
+
+  function updateBackBtn() {
+    const btn = document.getElementById('random-back');
+    if (btn) btn.disabled = history.length === 0;
+  }
+
+  // Before the card advances: capture current name + pre-rating state
+  document.body.addEventListener('rated', () => {
+    const article = document.querySelector('#name-card article[data-name]');
+    if (article) {
+      history.push({ name: article.dataset.name, prev_rating: article.dataset.prevRating || '' });
+      updateBackBtn();
+    }
+    // Disable all rating buttons immediately to prevent rapid-fire
+    document.querySelectorAll('.rating-btn').forEach(b => { b.disabled = true; });
+  });
+
+  document.getElementById('random-back')?.addEventListener('click', () => {
+    if (!history.length) return;
+    const { name, prev_rating } = history.pop();
+    updateBackBtn();
+    htmx.ajax('POST', '/random/undo', {
+      target: '#name-card',
+      swap: 'outerHTML',
+      values: { name, prev_rating },
+    });
+  });
+})();
+</script>
 {% endblock %}
