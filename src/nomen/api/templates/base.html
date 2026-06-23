@@ -127,6 +127,20 @@
     .pagination-btn:hover:not(.disabled) { background: var(--pico-card-sectionning-background-color, #f6f6f6); }
     .pagination-btn.disabled { opacity: 0.35; cursor: default; }
     .pagination-info { color: #888; }
+    /* ── Language tag picker ─────────────────────────────────────── */
+    .lang-picker { position: relative; }
+    .lang-pill-area { display: flex; flex-wrap: wrap; gap: 0.2rem; min-height: 1rem; }
+    .lang-dropdown {
+      position: absolute; z-index: 300; left: 0; right: 0;
+      background: var(--pico-card-background-color, #fff);
+      border: 1px solid var(--pico-card-border-color, #ddd);
+      border-radius: 4px; max-height: 180px; overflow-y: auto;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+    .lang-dropdown-item {
+      padding: 0.25rem 0.5rem; font-size: 0.82rem; cursor: pointer;
+    }
+    .lang-dropdown-item:hover { background: var(--pico-card-sectionning-background-color, #f0f0f0); }
     #name-card { max-width: 600px; margin: 0 auto; }
     .name-card-title { font-size: 2.5rem; margin-bottom: 0.25rem; }
     .exhausted { text-align: center; padding: 2rem; color: #666; }

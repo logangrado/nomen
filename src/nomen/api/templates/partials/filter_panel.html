@@ -75,6 +75,91 @@
     { value: 'eq',  label: '='  },
   ];
 
+  function buildLangPicker(selected_arr) {
+    const selected = new Set(selected_arr);
+
+    const wrap = document.createElement('div');
+    wrap.className = 'lang-picker';
+
+    const pillArea = document.createElement('div');
+    pillArea.className = 'lang-pill-area';
+
+    const searchInp = document.createElement('input');
+    searchInp.type = 'text';
+    searchInp.placeholder = 'Search languages…';
+    searchInp.style.cssText = 'width:100%; font-size:0.82rem; padding:0.2rem 0.3rem; margin:0.3rem 0 0; box-sizing:border-box;';
+
+    const dropdown = document.createElement('div');
+    dropdown.className = 'lang-dropdown';
+    dropdown.style.display = 'none';
+
+    // Hidden select is the data-cond-val source read by serializeConditions
+    const hiddenSel = document.createElement('select');
+    hiddenSel.multiple = true;
+    hiddenSel.hidden = true;
+    hiddenSel.dataset.condVal = '';
+    ALL_TAGS.forEach(t => {
+      const opt = new Option(t, t, false, selected.has(t));
+      hiddenSel.appendChild(opt);
+    });
+
+    function syncHidden() {
+      [...hiddenSel.options].forEach(o => { o.selected = selected.has(o.value); });
+    }
+
+    function renderPills() {
+      pillArea.innerHTML = '';
+      selected.forEach(tag => {
+        const pill = document.createElement('span');
+        pill.className = 'tag-pill';
+        pill.style.cursor = 'pointer';
+        pill.innerHTML = `${tag} <span style="font-size:0.7rem">✕</span>`;
+        pill.addEventListener('click', () => {
+          selected.delete(tag);
+          syncHidden();
+          renderPills();
+          serializeConditions();
+        });
+        pillArea.appendChild(pill);
+      });
+    }
+
+    function renderDropdown(query) {
+      const q = query.toLowerCase();
+      const matches = ALL_TAGS.filter(t => t.toLowerCase().includes(q) && !selected.has(t));
+      dropdown.innerHTML = '';
+      if (!matches.length || !query) { dropdown.style.display = 'none'; return; }
+      matches.slice(0, 25).forEach(tag => {
+        const item = document.createElement('div');
+        item.className = 'lang-dropdown-item';
+        item.textContent = tag;
+        item.addEventListener('mousedown', e => {
+          e.preventDefault();
+          selected.add(tag);
+          syncHidden();
+          searchInp.value = '';
+          dropdown.style.display = 'none';
+          renderPills();
+          serializeConditions();
+        });
+        dropdown.appendChild(item);
+      });
+      dropdown.style.display = 'block';
+    }
+
+    searchInp.addEventListener('input', () => renderDropdown(searchInp.value));
+    searchInp.addEventListener('focus', () => { if (searchInp.value) renderDropdown(searchInp.value); });
+    searchInp.addEventListener('blur', () => { setTimeout(() => { dropdown.style.display = 'none'; }, 150); });
+
+    renderPills();
+
+    wrap.appendChild(pillArea);
+    wrap.appendChild(searchInp);
+    wrap.appendChild(dropdown);
+    wrap.appendChild(hiddenSel);
+    return wrap;
+  }
+
   function buildRow(cond) {
     const row = document.createElement('div');
     row.className = 'cond-row';
@@ -137,16 +222,9 @@
         sel.addEventListener('change', serializeConditions);
         valWrap.appendChild(sel);
       } else if (kind === 'language') {
-        const allTags = ALL_TAGS;
         const existing = existingVal ? (Array.isArray(existingVal) ? existingVal : existingVal.split(',').map(s=>s.trim()).filter(Boolean)) : [];
-        const sel = document.createElement('select');
-        sel.dataset.condVal = '';
-        sel.multiple = true;
-        sel.size = Math.min(5, allTags.length || 3);
-        sel.style.cssText = 'width:100%; font-size:0.8rem; padding:0.15rem; margin:0;';
-        sel.innerHTML = allTags.map(t => `<option value="${t}"${existing.includes(t) ? ' selected' : ''}>${t}</option>`).join('');
-        sel.addEventListener('change', serializeConditions);
-        valWrap.appendChild(sel);
+        valWrap.style.flex = '1 1 220px';
+        valWrap.appendChild(buildLangPicker(existing));
       } else if (kind === 'numeric' || kind === 'integer') {
         const inp = document.createElement('input');
         inp.dataset.condVal = '';
