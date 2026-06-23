@@ -12,20 +12,19 @@
     <input type="text" id="filter-preset-name" placeholder="Preset name…" aria-label="New preset name">
     <button type="button" id="filter-preset-save" class="outline">Save</button>
   </div>
+  <label style="display:flex; align-items:center; gap:0.3rem; font-size:0.85rem; cursor:pointer; margin:0.5rem 0 0;">
+    <input type="checkbox" name="hide_rated" value="true" {% if hide_rated %}checked{% endif %}
+           style="width:1rem !important; height:1rem !important; margin:0;">
+    Hide already rated
+  </label>
+
   <form
     hx-get="{{ form_action }}"
     hx-target="{{ form_target }}"
     hx-trigger="submit"
-    hx-include="[name='search'],[name='conditions']"
+    hx-include="[name='search'],[name='hide_rated']:checked,[name='conditions'],#current-sort,#current-dir"
     hx-push-url="true"
   >
-    <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.5rem; flex-wrap:wrap;">
-      <label style="display:flex; align-items:center; gap:0.3rem; font-size:0.85rem; cursor:pointer;">
-        <input type="checkbox" name="hide_rated" value="true" {% if hide_rated %}checked{% endif %}
-               style="width:1rem !important; height:1rem !important; margin:0;">
-        Hide already rated
-      </label>
-    </div>
 
     {# Advanced condition builder #}
     <div style="margin-top:0.75rem;">
