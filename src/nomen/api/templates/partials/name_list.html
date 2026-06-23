@@ -29,6 +29,7 @@
   <thead>
     <tr>
       {{ sort_th("name", "Name") }}
+      <th data-col="rating">Rating</th>
       <th data-col="gender">Gender</th>
       <th data-col="usage">Language</th>
       <th data-col="meaning">Meaning</th>
@@ -49,6 +50,12 @@
     {% for n in names %}
     <tr>
       <td data-col="name"><strong><a href="/names/{{ n.name }}">{{ n.name | title }}</a></strong></td>
+      <td data-col="rating">
+        {% set mode = "browse" %}
+        {% set name = n.name %}
+        {% set user_rating = n.user_rating %}
+        {% include "partials/rating_buttons.html" %}
+      </td>
       <td data-col="gender">
         {% if n.gender %}
         <span class="gender-badge gender-{{ n.gender }}">{{ n.gender }}</span>
@@ -105,12 +112,6 @@
             {{ "%+.3f"|format(n.trend_10yr) }}
           </span>
         {% endif %}
-      </td>
-      <td data-col="rating">
-        {% set mode = "browse" %}
-        {% set name = n.name %}
-        {% set user_rating = n.user_rating %}
-        {% include "partials/rating_buttons.html" %}
       </td>
     </tr>
     {% endfor %}
