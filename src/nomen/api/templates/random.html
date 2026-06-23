@@ -4,7 +4,8 @@
 {% block content %}
 <h2>Random Name</h2>
 
-{% set form_action = "/random" %}
+{% set form_action = "/random/next" %}
+{% set form_swap = "outerHTML" %}
 {% set form_target = "#name-card" %}
 {% include "partials/filter_panel.html" %}
 

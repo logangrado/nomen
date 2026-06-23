@@ -58,10 +58,11 @@ async def browse(
     )
 
     has_next = len(names) == PAGE_SIZE
+    is_htmx = request.headers.get("HX-Request") == "true"
 
     return templates.TemplateResponse(
         request,
-        "browse.html",
+        "partials/name_list.html" if is_htmx else "browse.html",
         {
             "names": names,
             "all_tags": all_tags,

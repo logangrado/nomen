@@ -13,11 +13,8 @@
 {% set indicator = " ↑" if (is_active and dir == "asc") else (" ↓" if (is_active and dir == "desc") else "") %}
 <th data-col="{{ col }}">
   <span class="sort-header{% if is_active %} sort-active{% endif %}"
-    hx-get="/"
+    hx-get="/names"
     hx-target="#name-list"
-    hx-select="#name-list"
-    hx-swap="outerHTML"
-    hx-push-url="true"
     hx-include="[name='search'],[name='hide_rated']:checked,#current-sort,#current-dir,[name='conditions']"
     hx-vals='{"sort": "{{ sc }}", "dir": "{{ next_dir }}"}'
   >{{ label }}{{ indicator }}</span>
@@ -124,11 +121,8 @@
   {% if page > 1 %}
   <span
     class="pagination-btn"
-    hx-get="/?{{ _qs }}&page={{ page - 1 }}"
+    hx-get="/names?{{ _qs }}&page={{ page - 1 }}"
     hx-target="#name-list"
-    hx-select="#name-list"
-    hx-swap="outerHTML"
-    hx-push-url="true"
   >← Prev</span>
   {% else %}
   <span class="pagination-btn disabled">← Prev</span>
@@ -139,11 +133,8 @@
   {% if has_next %}
   <span
     class="pagination-btn"
-    hx-get="/?{{ _qs }}&page={{ page + 1 }}"
+    hx-get="/names?{{ _qs }}&page={{ page + 1 }}"
     hx-target="#name-list"
-    hx-select="#name-list"
-    hx-swap="outerHTML"
-    hx-push-url="true"
   >Next →</span>
   {% else %}
   <span class="pagination-btn disabled">Next →</span>
