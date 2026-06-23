@@ -43,7 +43,8 @@
 {% if name %}
 {# After a rating POST triggers "rated" event, fetch next card #}
 <div
-  hx-get="/random/next?{% if gender %}gender={{ gender }}&{% endif %}{% for t in (tags or []) %}tags={{ t }}&{% endfor %}{% if hide_rated %}hide_rated=true{% endif %}"
+  hx-get="/random/next"
+  hx-include="[name='hide_rated']:checked,[name='conditions']"
   hx-trigger="rated from:body"
   hx-target="#name-card"
   hx-swap="outerHTML"

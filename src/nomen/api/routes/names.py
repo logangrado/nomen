@@ -148,7 +148,9 @@ async def random_page(
     gender: str | None = Query(default=None),
     tags: list[str] = Query(default=[]),
     hide_rated: bool = Query(default=False),
+    conditions: str | None = Query(default=None),
 ):
+    conds = _parse_conditions(conditions)
     all_tags = get_language_tags(conn)
     name = random_name(
         conn,
@@ -156,6 +158,7 @@ async def random_page(
         language_tags=tags or None,
         hide_rated_by=user_id if hide_rated else None,
         current_user=user_id,
+        conditions_arg=conds or None,
     )
     return templates.TemplateResponse(
         request,
@@ -167,7 +170,7 @@ async def random_page(
             "gender": gender,
             "tags": tags,
             "hide_rated": hide_rated,
-            "conditions": "",
+            "conditions": conditions or "",
             "user_id": user_id,
         },
     )
@@ -181,16 +184,19 @@ async def random_next(
     gender: str | None = Query(default=None),
     tags: list[str] = Query(default=[]),
     hide_rated: bool = Query(default=False),
+    conditions: str | None = Query(default=None),
 ):
+    conds = _parse_conditions(conditions)
     name = random_name(
         conn,
         gender=gender or None,
         language_tags=tags or None,
         hide_rated_by=user_id if hide_rated else None,
         current_user=user_id,
+        conditions_arg=conds or None,
     )
     return templates.TemplateResponse(
         request,
         "partials/name_card.html",
-        {"name": name, "gender": gender, "tags": tags, "hide_rated": hide_rated, "user_id": user_id},
+        {"name": name, "gender": gender, "tags": tags, "hide_rated": hide_rated, "conditions": conditions or "", "user_id": user_id},
     )

@@ -312,6 +312,7 @@ def random_name(
     language_tags: list[str] | None = None,
     hide_rated_by: str | None = None,
     current_user: str | None = None,
+    conditions_arg: list[dict] | None = None,
 ) -> dict | None:
     """Return a single random name matching filters, or None if none match."""
     hide_join = ""
@@ -328,17 +329,26 @@ def random_name(
             "AND r_cur.user_id = %(current_user)s"
         )
 
-    conditions = []
-    if gender == "M":
-        conditions.append("nm.gender IN ('M', 'MF')")
-    elif gender == "F":
-        conditions.append("nm.gender IN ('F', 'MF')")
-    if language_tags:
-        conditions.append("nm.language_tags && %(language_tags)s")
-    if hide_rated_by:
-        conditions.append("r_hide.rating IS NULL")
+    params = {
+        "language_tags": language_tags,
+        "hide_rated_by": hide_rated_by,
+        "current_user": current_user,
+    }
 
-    where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+    sql_conditions = []
+    if gender == "M":
+        sql_conditions.append("nm.gender IN ('M', 'MF')")
+    elif gender == "F":
+        sql_conditions.append("nm.gender IN ('F', 'MF')")
+    if language_tags:
+        sql_conditions.append("nm.language_tags && %(language_tags)s")
+    if hide_rated_by:
+        sql_conditions.append("r_hide.rating IS NULL")
+
+    if conditions_arg:
+        _apply_conditions(conditions_arg, sql_conditions, params)
+
+    where = ("WHERE " + " AND ".join(sql_conditions)) if sql_conditions else ""
     rating_col = "r_cur.rating AS user_rating" if current_user else "NULL::text AS user_rating"
 
     sql = f"""
@@ -350,18 +360,13 @@ def random_name(
             {rating_col}
         FROM names n
         LEFT JOIN name_meta nm ON nm.name = n.name
+        LEFT JOIN name_popularity np ON np.name = n.name
         {hide_join}
         {rating_join}
         {where}
         ORDER BY random()
         LIMIT 1
     """
-
-    params = {
-        "language_tags": language_tags,
-        "hide_rated_by": hide_rated_by,
-        "current_user": current_user,
-    }
 
     with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
         cur.execute(sql, params)
