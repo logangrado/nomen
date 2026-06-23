@@ -312,63 +312,81 @@ def random_name(
     language_tags: list[str] | None = None,
     hide_rated_by: str | None = None,
     current_user: str | None = None,
+    partner_id: str | None = None,
     conditions_arg: list[dict] | None = None,
 ) -> dict | None:
-    """Return a single random name matching filters, or None if none match."""
-    hide_join = ""
-    if hide_rated_by:
-        hide_join = (
-            "LEFT JOIN ratings r_hide ON r_hide.name = n.name "
-            "AND r_hide.user_id = %(hide_rated_by)s"
-        )
+    """Return a single random name matching filters, or None if none match.
 
-    rating_join = ""
-    if current_user:
-        rating_join = (
-            "LEFT JOIN ratings r_cur ON r_cur.name = n.name "
-            "AND r_cur.user_id = %(current_user)s"
-        )
-
-    params = {
-        "language_tags": language_tags,
-        "hide_rated_by": hide_rated_by,
-        "current_user": current_user,
-    }
-
-    sql_conditions = []
-    if gender == "M":
-        sql_conditions.append("nm.gender IN ('M', 'MF')")
-    elif gender == "F":
-        sql_conditions.append("nm.gender IN ('F', 'MF')")
-    if language_tags:
-        sql_conditions.append("nm.language_tags && %(language_tags)s")
-    if hide_rated_by:
-        sql_conditions.append("r_hide.rating IS NULL")
-
-    if conditions_arg:
-        _apply_conditions(conditions_arg, sql_conditions, params)
-
-    where = ("WHERE " + " AND ".join(sql_conditions)) if sql_conditions else ""
-    rating_col = "r_cur.rating AS user_rating" if current_user else "NULL::text AS user_rating"
-
-    sql = f"""
-        SELECT
-            n.name,
-            nm.gender,
-            nm.meaning,
-            nm.language_tags,
-            {rating_col}
-        FROM names n
-        LEFT JOIN name_meta nm ON nm.name = n.name
-        LEFT JOIN name_popularity np ON np.name = n.name
-        {hide_join}
-        {rating_join}
-        {where}
-        ORDER BY random()
-        LIMIT 1
+    If partner_id is given, 50% of the time tries to surface a name the partner
+    liked/loved that the current user hasn't rated yet. Falls back to fully
+    random if no such names exist.
     """
+    import random as _random
+
+    def _build_query(extra_join: str = "", extra_conditions: list[str] | None = None) -> tuple[str, dict]:
+        hide_join = ""
+        if hide_rated_by:
+            hide_join = (
+                "LEFT JOIN ratings r_hide ON r_hide.name = n.name "
+                "AND r_hide.user_id = %(hide_rated_by)s"
+            )
+        rating_join = ""
+        if current_user:
+            rating_join = (
+                "LEFT JOIN ratings r_cur ON r_cur.name = n.name "
+                "AND r_cur.user_id = %(current_user)s"
+            )
+        params: dict = {
+            "language_tags": language_tags,
+            "hide_rated_by": hide_rated_by,
+            "current_user": current_user,
+        }
+        sql_conditions = list(extra_conditions or [])
+        if gender == "M":
+            sql_conditions.append("nm.gender IN ('M', 'MF')")
+        elif gender == "F":
+            sql_conditions.append("nm.gender IN ('F', 'MF')")
+        if language_tags:
+            sql_conditions.append("nm.language_tags && %(language_tags)s")
+        if hide_rated_by:
+            sql_conditions.append("r_hide.rating IS NULL")
+        if conditions_arg:
+            _apply_conditions(conditions_arg, sql_conditions, params)
+        where = ("WHERE " + " AND ".join(sql_conditions)) if sql_conditions else ""
+        rating_col = "r_cur.rating AS user_rating" if current_user else "NULL::text AS user_rating"
+        sql = f"""
+            SELECT n.name, nm.gender, nm.meaning, nm.language_tags, {rating_col}
+            FROM names n
+            LEFT JOIN name_meta nm ON nm.name = n.name
+            LEFT JOIN name_popularity np ON np.name = n.name
+            {hide_join}
+            {rating_join}
+            {extra_join}
+            {where}
+            ORDER BY random()
+            LIMIT 1
+        """
+        return sql, params
 
     with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
+        # 50% of the time, try to surface a partner-liked name the user hasn't rated
+        if partner_id and _random.random() < 0.5:
+            partner_join = (
+                "JOIN ratings r_partner ON r_partner.name = n.name "
+                "AND r_partner.user_id = %(partner_id)s AND r_partner.rating >= 1 "
+                "LEFT JOIN ratings r_self ON r_self.name = n.name "
+                "AND r_self.user_id = %(current_user)s"
+            )
+            partner_conditions = ["r_self.rating IS NULL"]
+            sql, params = _build_query(extra_join=partner_join, extra_conditions=partner_conditions)
+            params["partner_id"] = partner_id
+            cur.execute(sql, params)
+            row = cur.fetchone()
+            if row:
+                return row
+
+        # Normal random
+        sql, params = _build_query()
         cur.execute(sql, params)
         return cur.fetchone()
 

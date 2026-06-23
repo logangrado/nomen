@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from nomen.api.deps import get_db, require_user
+from nomen.api.deps import get_db, get_partner, require_user
 from nomen.queries import TAG_GROUPS, get_language_tags, random_name, search_names
 
 router = APIRouter()
@@ -143,6 +143,7 @@ async def names_fragment(
 async def random_page(
     request: Request,
     user_id: str = Depends(require_user),
+    partner_id: str | None = Depends(get_partner),
     conn=Depends(get_db),
     gender: str | None = Query(default=None),
     tags: list[str] = Query(default=[]),
@@ -157,6 +158,7 @@ async def random_page(
         language_tags=tags or None,
         hide_rated_by=user_id if hide_rated else None,
         current_user=user_id,
+        partner_id=partner_id,
         conditions_arg=conds or None,
     )
     return templates.TemplateResponse(
@@ -179,6 +181,7 @@ async def random_page(
 async def random_next(
     request: Request,
     user_id: str = Depends(require_user),
+    partner_id: str | None = Depends(get_partner),
     conn=Depends(get_db),
     gender: str | None = Query(default=None),
     tags: list[str] = Query(default=[]),
@@ -192,6 +195,7 @@ async def random_next(
         language_tags=tags or None,
         hide_rated_by=user_id if hide_rated else None,
         current_user=user_id,
+        partner_id=partner_id,
         conditions_arg=conds or None,
     )
     return templates.TemplateResponse(

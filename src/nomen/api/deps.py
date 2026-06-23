@@ -19,6 +19,19 @@ def get_user(request: Request) -> str | None:
     return request.session.get("user_id")
 
 
+def get_partner(request: Request) -> str | None:
+    """Return the other user's id, or None if not logged in / not configured."""
+    user_id = request.session.get("user_id")
+    if not user_id:
+        return None
+    config = get_config()
+    if user_id == config.user1:
+        return config.user2
+    if user_id == config.user2:
+        return config.user1
+    return None
+
+
 def require_user(request: Request) -> str:
     """Return current user_id or raise a redirect to /user/select."""
     user_id = request.session.get("user_id")
