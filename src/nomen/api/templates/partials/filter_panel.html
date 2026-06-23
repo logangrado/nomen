@@ -21,6 +21,8 @@
   <form
     hx-get="{{ form_action }}"
     hx-target="{{ form_target }}"
+    hx-select="{{ form_target }}"
+    hx-swap="outerHTML"
     hx-trigger="submit"
     hx-include="[name='search'],[name='hide_rated']:checked,[name='conditions'],#current-sort,#current-dir"
     hx-push-url="true"

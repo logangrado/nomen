@@ -10,8 +10,10 @@
     name="search"
     value="{{ search }}"
     placeholder="Search names…"
-    hx-get="/names"
+    hx-get="/"
     hx-target="#name-list"
+    hx-select="#name-list"
+    hx-swap="outerHTML"
     hx-trigger="keyup changed delay:100ms, search"
     hx-include="[name='hide_rated']:checked,#current-sort,#current-dir,[name='conditions']"
     autocomplete="off"
@@ -49,7 +51,7 @@
 <input type="hidden" id="current-sort" name="sort" value="{{ sort }}">
 <input type="hidden" id="current-dir" name="dir" value="{{ dir }}">
 
-{% set form_action = "/names" %}
+{% set form_action = "/" %}
 {% set form_target = "#name-list" %}
 {% include "partials/filter_panel.html" %}
 
@@ -102,8 +104,8 @@
     });
 
     // Re-apply after htmx swaps in new rows
-    document.body.addEventListener('htmx:afterSwap', (e) => {
-      if (e.target.id === 'name-list') applyCols(currentVisible());
+    document.body.addEventListener('htmx:afterSettle', () => {
+      applyCols(currentVisible());
     });
 
     // Toggle dropdown
