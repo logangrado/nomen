@@ -15,7 +15,8 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
       - run: uv sync
-      - run: uv run inv format --check
+      - run: uv run ruff format --check src/ tests/
+      - run: uv run ruff check src/ tests/
 
   test:
     name: Test
