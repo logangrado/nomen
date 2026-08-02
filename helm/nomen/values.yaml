@@ -1,0 +1,40 @@
+image:
+  repository: ghcr.io/logangrado/nomen
+  tag: latest
+  pullPolicy: IfNotPresent
+
+# Number of web replicas. Note: multiple replicas share the same database,
+# but the app has no in-process state so this is safe.
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: false
+  className: ""
+  host: nomen.local
+  # Optional TLS secret name. If set, TLS is enabled for the ingress.
+  tlsSecret: ""
+  annotations: {}
+
+# DATABASE_URL is read from a Kubernetes Secret.
+# Create it before installing:
+#   kubectl create secret generic nomen-db \
+#     --from-literal=DATABASE_URL='postgresql://user:pass@host:5432/nomen'
+db:
+  secretName: nomen-db
+  secretKey: DATABASE_URL
+
+# init.enabled=true runs `nomen init` as a Helm post-install/post-upgrade hook.
+# Safe to set on every upgrade — all pipeline functions are idempotent.
+init:
+  enabled: false
+
+resources: {}
+#  requests:
+#    cpu: 100m
+#    memory: 256Mi
+#  limits:
+#    memory: 512Mi

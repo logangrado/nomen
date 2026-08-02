@@ -3,6 +3,7 @@
 These tests require a live Postgres connection (provided by the `conn` fixture
 from conftest.py via pytest-postgresql).
 """
+
 from nomen.pipelines.base import copy_records
 from nomen.pipelines.ssa import _seed_regions, _upsert_names
 

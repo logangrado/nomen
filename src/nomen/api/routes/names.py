@@ -201,5 +201,12 @@ async def random_next(
     return templates.TemplateResponse(
         request,
         "partials/name_card.html",
-        {"name": name, "gender": gender, "tags": tags, "hide_rated": hide_rated, "conditions": conditions or "", "user_id": user_id},
+        {
+            "name": name,
+            "gender": gender,
+            "tags": tags,
+            "hide_rated": hide_rated,
+            "conditions": conditions or "",
+            "user_id": user_id,
+        },
     )

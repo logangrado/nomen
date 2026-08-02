@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from nomen.api.deps import get_db, require_user
-from nomen.queries import get_name_detail, get_name_stats, get_user_ratings, upsert_rating
+from nomen.queries import get_name_detail, get_name_stats, get_user_ratings
 
 router = APIRouter()
 templates = Jinja2Templates(directory=Path(__file__).parent.parent / "templates")
@@ -25,16 +25,18 @@ def _build_chart_data(stats: list[dict]) -> str:
     datasets = []
     for gender in sorted(by_gender):
         counts = by_gender[gender]
-        datasets.append({
-            "label": gender,
-            "data": [counts.get(y, 0) for y in all_years],
-            "borderColor": colors.get(gender, "#888"),
-            "backgroundColor": colors.get(gender, "#888") + "22",
-            "fill": False,
-            "tension": 0.3,
-            "pointRadius": 0,
-            "borderWidth": 2,
-        })
+        datasets.append(
+            {
+                "label": gender,
+                "data": [counts.get(y, 0) for y in all_years],
+                "borderColor": colors.get(gender, "#888"),
+                "backgroundColor": colors.get(gender, "#888") + "22",
+                "fill": False,
+                "tension": 0.3,
+                "pointRadius": 0,
+                "borderWidth": 2,
+            }
+        )
 
     return json.dumps({"labels": all_years, "datasets": datasets})
 

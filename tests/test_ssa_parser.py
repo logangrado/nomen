@@ -1,8 +1,5 @@
-import io
 import zipfile
 from pathlib import Path
-
-import pytest
 
 from nomen.pipelines.ssa import USPS_TO_ISO, parse_national, parse_states
 
@@ -18,6 +15,7 @@ def _make_zip(entries: dict[str, str], dest: Path) -> Path:
 # ---------------------------------------------------------------------------
 # parse_national
 # ---------------------------------------------------------------------------
+
 
 def test_parse_national_basic(tmp_path):
     content = "Emma,F,20000\nLiam,M,19500\n"
@@ -73,6 +71,7 @@ def test_parse_national_multiple_years(tmp_path):
 # parse_states
 # ---------------------------------------------------------------------------
 
+
 def test_parse_states_basic(tmp_path):
     content = "CA,F,2020,Olivia,5000\n"
     zip_path = _make_zip({"CA.TXT": content}, tmp_path / "states.zip")
@@ -110,16 +109,16 @@ def test_parse_states_lowercases_name(tmp_path):
 INVALID_NAMES = [
     "02avdi02el",
     "04ailani",
-    "A02isha",   # becomes a02isha after lowercase — digit in body
-    "A10bel",    # becomes a10bel
+    "A02isha",  # becomes a02isha after lowercase — digit in body
+    "A10bel",  # becomes a10bel
     "02aziz",
 ]
 
 VALID_NAMES = [
-    "Emma",        # plain
-    "MacKenzie",   # mixed case — lowercased to mackenzie
-    "Mary-Jane",   # hyphen
-    "O'Brien",     # apostrophe
+    "Emma",  # plain
+    "MacKenzie",  # mixed case — lowercased to mackenzie
+    "Mary-Jane",  # hyphen
+    "O'Brien",  # apostrophe
 ]
 
 

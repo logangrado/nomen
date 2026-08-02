@@ -1,0 +1,26 @@
+{{- if .Values.init.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "nomen.name" . }}-init
+  labels:
+    {{- include "nomen.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        {{- include "nomen.labels" . | nindent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: init
+          image: {{ include "nomen.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["nomen", "init"]
+          env:
+            {{- include "nomen.dbEnv" . | nindent 12 }}
+{{- end }}

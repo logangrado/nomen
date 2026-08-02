@@ -15,5 +15,25 @@ services:
       timeout: 5s
       retries: 10
 
+  web:
+    image: ghcr.io/logangrado/nomen:latest
+    environment:
+      DATABASE_URL: postgresql://nomen:nomen@postgres:5432/nomen
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  init:
+    image: ghcr.io/logangrado/nomen:latest
+    command: ["nomen", "init"]
+    environment:
+      DATABASE_URL: postgresql://nomen:nomen@postgres:5432/nomen
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: [init]
+
 volumes:
   pgdata:

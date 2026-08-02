@@ -13,9 +13,7 @@ templates = Jinja2Templates(directory=Path(__file__).parent.parent / "templates"
 @router.get("/user/select")
 async def user_select_page(request: Request):
     config = get_config()
-    return templates.TemplateResponse(
-        request, "user_select.html", {"config": config}
-    )
+    return templates.TemplateResponse(request, "user_select.html", {"config": config})
 
 
 @router.post("/user/select")

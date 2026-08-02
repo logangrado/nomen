@@ -1,0 +1,198 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions: read-all
+
+jobs:
+  compute-version:
+    name: Compute next version
+    if: github.event.forced == false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      next_version: ${{ steps.compute.outputs.next_version }}
+      skip_release: ${{ steps.compute.outputs.skip_release }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Compute version
+        id: compute
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+
+          LATEST_TAG=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || echo "")
+          if [ -z "$LATEST_TAG" ]; then
+            LATEST_TAG="v0.0.0"
+          fi
+
+          MAJOR=$(echo "$LATEST_TAG" | sed 's/^v//' | cut -d. -f1)
+          MINOR=$(echo "$LATEST_TAG" | sed 's/^v//' | cut -d. -f2)
+          PATCH=$(echo "$LATEST_TAG" | sed 's/^v//' | cut -d. -f3)
+
+          echo "Latest tag: $LATEST_TAG"
+
+          # Find the PR that was merged via this push (retry for API propagation delay)
+          PR_NUMBER=""
+          for attempt in 1 2 3; do
+            PR_NUMBER=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" --jq '.[0].number' 2>/dev/null || echo "")
+            if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" != "null" ]; then
+              break
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "PR not yet indexed, retrying in 10s (attempt $attempt/3)..."
+              sleep 10
+            fi
+          done
+
+          # Fallback: parse PR number from squash-merge commit message "(#N)"
+          if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "null" ]; then
+            COMMIT_MSG=$(git log -1 --format='%s' "$GITHUB_SHA")
+            PR_NUMBER=$(echo "$COMMIT_MSG" | grep -oE '\(#[0-9]+\)$' | grep -oE '[0-9]+' || echo "")
+            if [ -n "$PR_NUMBER" ]; then
+              echo "Extracted PR number from commit message: #$PR_NUMBER"
+            fi
+          fi
+
+          echo "PR number: $PR_NUMBER"
+
+          # Skip if no PR is associated (e.g. a direct push to main)
+          if [ "$PR_NUMBER" = "null" ] || [ -z "$PR_NUMBER" ]; then
+            echo "No PR found for this push, skipping release"
+            echo "skip_release=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Fetch all commit subjects from the PR (paginated)
+          COMMITS=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/commits" \
+            --paginate --jq '.[].commit.message | split("\n")[0]')
+
+          echo "Commits in PR:"
+          echo "$COMMITS"
+
+          bump_level() {
+            MSG="$1"
+            if   echo "$MSG" | grep -qE '^[a-z]+(\([^)]+\))?!:';                         then echo 3
+            elif echo "$MSG" | grep -qE '^feat(\([^)]+\))?:';                             then echo 2
+            elif echo "$MSG" | grep -qE '^(fix|perf|refactor|revert|test)(\([^)]+\))?:'; then echo 1
+            else echo 0
+            fi
+          }
+
+          # no-bump escape hatch: if any commit starts with "no-bump:", skip release
+          if echo "$COMMITS" | grep -qE '^no-bump(\([^)]+\))?:'; then
+            BUMP="none"
+          else
+            MAX_LEVEL=0
+            while IFS= read -r TITLE; do
+              LEVEL=$(bump_level "$TITLE")
+              [ "$LEVEL" -gt "$MAX_LEVEL" ] && MAX_LEVEL=$LEVEL
+            done <<< "$COMMITS"
+
+            case "$MAX_LEVEL" in
+              3) BUMP="major" ;;
+              2) BUMP="minor" ;;
+              1) BUMP="patch" ;;
+              0) BUMP="none"  ;;
+            esac
+          fi
+
+          echo "Bump type: $BUMP"
+
+          case "$BUMP" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+            none)  ;;
+          esac
+
+          NEXT_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "Next version: $NEXT_VERSION"
+          echo "next_version=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
+
+          if [ "$BUMP" = "none" ]; then
+            echo "skip_release=true" >> "$GITHUB_OUTPUT"
+            echo "Skipping release: version stays at $LATEST_TAG"
+          else
+            echo "skip_release=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  create-release:
+    name: Create release
+    needs: compute-version
+    if: needs.compute-version.outputs.skip_release == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      NEXT_VERSION: ${{ needs.compute-version.outputs.next_version }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Configure git identity
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+
+      - name: Tag and push
+        run: |
+          git tag -a "$NEXT_VERSION" -m "Release $NEXT_VERSION"
+          git push origin "$NEXT_VERSION"
+
+      - name: Create GitHub Release
+        run: gh release create "$NEXT_VERSION" --generate-notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-docker:
+    name: Build and push Docker image
+    needs: [compute-version, create-release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      NEXT_VERSION: ${{ needs.compute-version.outputs.next_version }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@902fa8ec7d6ecbea8a68c2df1108f7a3a3fffce8 # v5.7.0
+        with:
+          images: ghcr.io/logangrado/nomen
+          tags: |
+            type=raw,value=${{ env.NEXT_VERSION }}
+            type=raw,value=latest
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@b5730b4cdf79f6cdb2c1d29c4a5f70e24d92948 # v3.11.1
+
+      - name: Build and push
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=ghcr.io/logangrado/nomen:buildcache
+          cache-to: type=registry,ref=ghcr.io/logangrado/nomen:buildcache,mode=max

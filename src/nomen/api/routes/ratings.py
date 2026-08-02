@@ -69,6 +69,5 @@ async def random_undo(
     return templates.TemplateResponse(
         request,
         "partials/name_card.html",
-        {"name": name_data, "gender": None, "tags": [], "hide_rated": False,
-         "conditions": "", "user_id": user_id},
+        {"name": name_data, "gender": None, "tags": [], "hide_rated": False, "conditions": "", "user_id": user_id},
     )

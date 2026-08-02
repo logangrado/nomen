@@ -10,10 +10,11 @@ Data is stored in the `names` and `name_meta` tables.
 
 Rate limit: 1 request/second (site allows 2/sec; we stay conservative).
 """
+
+import os
 import re
 import string
 import time
-import os
 from typing import Iterator
 from urllib.parse import unquote
 
@@ -32,6 +33,7 @@ HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; nomen-pipeline/1.0; personal 
 # ---------------------------------------------------------------------------
 # Fetching
 # ---------------------------------------------------------------------------
+
 
 def _get(client: httpx.Client, url: str) -> BeautifulSoup:
     resp = client.get(url, headers=HEADERS)
@@ -55,6 +57,7 @@ def _last_page(soup: BeautifulSoup) -> int:
 # ---------------------------------------------------------------------------
 # Parsing
 # ---------------------------------------------------------------------------
+
 
 def _parse_gender(gender_span) -> str | None:
     """Return 'M', 'F', 'MF', or None from a listgender span."""
@@ -130,9 +133,7 @@ def _parse_page(soup: BeautifulSoup) -> Iterator[dict]:
         if usage_span:
             raw_tags = [a.get_text() for a in usage_span.find_all("a", class_="usg")]
             # Strip qualifiers like "(Rare)", "(Archaic)", "(Modern)", "(Medieval)", etc.
-            usage_tags = list(dict.fromkeys(
-                re.sub(r"\s*\(.*?\)", "", tag).strip() for tag in raw_tags
-            ))
+            usage_tags = list(dict.fromkeys(re.sub(r"\s*\(.*?\)", "", tag).strip() for tag in raw_tags))
 
         description = _parse_description(name_span)
 
@@ -145,10 +146,10 @@ def _parse_page(soup: BeautifulSoup) -> Iterator[dict]:
         }
 
 
-
 # ---------------------------------------------------------------------------
 # Loader
 # ---------------------------------------------------------------------------
+
 
 def _upsert_name_meta(conn: psycopg.Connection, record: dict) -> None:
     conn.execute(
@@ -193,10 +194,7 @@ def load_btn(letters: str | None = None) -> None:
             total_pages = _last_page(soup)
             print(f"  {letter.upper()}: {total_pages} page(s)", flush=True)
 
-            pages = [soup] + [
-                _get(client, f"{BASE_URL}/names/letter/{letter}/{p}")
-                for p in range(2, total_pages + 1)
-            ]
+            pages = [soup] + [_get(client, f"{BASE_URL}/names/letter/{letter}/{p}") for p in range(2, total_pages + 1)]
 
             count = 0
             for page_soup in pages:

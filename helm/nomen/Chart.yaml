@@ -1,0 +1,6 @@
+apiVersion: v2
+name: nomen
+description: Baby name discovery app — queryable name database with collaborative ratings.
+type: application
+version: 0.1.0
+appVersion: "latest"
