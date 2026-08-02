@@ -1,6 +1,6 @@
 image:
   repository: ghcr.io/logangrado/nomen
-  tag: v0.1.1
+  tag: v0.2.0
   pullPolicy: IfNotPresent
 
 # Number of web replicas. Note: multiple replicas share the same database,
@@ -31,16 +31,16 @@ traefik:
 # installing the chart:
 #   kubectl create secret generic nomen-secrets \
 #     --from-literal=DATABASE_URL='postgresql://user:pass@host:5432/nomen' \
-#     --from-literal=SECRET_KEY='...' \
-#     --from-literal=USER_1='...' \
-#     --from-literal=USER_2='...'
+#     --from-literal=SECRET_KEY='...'
 env:
   secretName: nomen-secrets
   keys:
     databaseUrl: DATABASE_URL
     secretKey: SECRET_KEY
-    user1: USER_1
-    user2: USER_2
+
+users:
+  user1: ""
+  user2: ""
 
 # init.enabled=true runs `nomen init` as a Helm post-install/post-upgrade hook.
 # Safe to set on every upgrade — all pipeline functions are idempotent.
