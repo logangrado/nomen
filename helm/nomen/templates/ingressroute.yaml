@@ -14,6 +14,10 @@ spec:
       services:
         - name: {{ include "nomen.name" . }}
           port: {{ .Values.service.port }}
+  {{- with .Values.traefik.ingressRoute.tls }}
   tls:
-    {{- toYaml .Values.traefik.ingressRoute.tls | nindent 4 }}
+    {{- toYaml . | nindent 4 }}
+  {{- else }}
+  tls: {}
+  {{- end }}
 {{- end }}
