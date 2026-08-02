@@ -6,17 +6,18 @@ Sources:
   State:    https://www.ssa.gov/oact/babynames/state/namesbystate.zip
             Contains {STATE}.TXT files: State,Gender,Year,Name,Count
 """
+
 import io
 import os
 import re
 from pathlib import Path
 from zipfile import ZipFile
 
-_VALID_NAME = re.compile(r"^[a-z][a-z'\-]*$")
-
 import psycopg
 
 from nomen.pipelines.base import copy_records, download_zip, normalize_name
+
+_VALID_NAME = re.compile(r"^[a-z][a-z'\-]*$")
 
 NATIONAL_URL = "https://www.ssa.gov/oact/babynames/names.zip"
 STATE_URL = "https://www.ssa.gov/oact/babynames/state/namesbystate.zip"
@@ -25,35 +26,111 @@ DATA_DIR = Path("data/ssa")
 
 # Mapping from USPS 2-letter abbreviations to ISO 3166-2 region codes
 USPS_TO_ISO: dict[str, str] = {
-    "AL": "US-AL", "AK": "US-AK", "AZ": "US-AZ", "AR": "US-AR",
-    "CA": "US-CA", "CO": "US-CO", "CT": "US-CT", "DE": "US-DE",
-    "DC": "US-DC", "FL": "US-FL", "GA": "US-GA", "HI": "US-HI",
-    "ID": "US-ID", "IL": "US-IL", "IN": "US-IN", "IA": "US-IA",
-    "KS": "US-KS", "KY": "US-KY", "LA": "US-LA", "ME": "US-ME",
-    "MD": "US-MD", "MA": "US-MA", "MI": "US-MI", "MN": "US-MN",
-    "MS": "US-MS", "MO": "US-MO", "MT": "US-MT", "NE": "US-NE",
-    "NV": "US-NV", "NH": "US-NH", "NJ": "US-NJ", "NM": "US-NM",
-    "NY": "US-NY", "NC": "US-NC", "ND": "US-ND", "OH": "US-OH",
-    "OK": "US-OK", "OR": "US-OR", "PA": "US-PA", "RI": "US-RI",
-    "SC": "US-SC", "SD": "US-SD", "TN": "US-TN", "TX": "US-TX",
-    "UT": "US-UT", "VT": "US-VT", "VA": "US-VA", "WA": "US-WA",
-    "WV": "US-WV", "WI": "US-WI", "WY": "US-WY",
+    "AL": "US-AL",
+    "AK": "US-AK",
+    "AZ": "US-AZ",
+    "AR": "US-AR",
+    "CA": "US-CA",
+    "CO": "US-CO",
+    "CT": "US-CT",
+    "DE": "US-DE",
+    "DC": "US-DC",
+    "FL": "US-FL",
+    "GA": "US-GA",
+    "HI": "US-HI",
+    "ID": "US-ID",
+    "IL": "US-IL",
+    "IN": "US-IN",
+    "IA": "US-IA",
+    "KS": "US-KS",
+    "KY": "US-KY",
+    "LA": "US-LA",
+    "ME": "US-ME",
+    "MD": "US-MD",
+    "MA": "US-MA",
+    "MI": "US-MI",
+    "MN": "US-MN",
+    "MS": "US-MS",
+    "MO": "US-MO",
+    "MT": "US-MT",
+    "NE": "US-NE",
+    "NV": "US-NV",
+    "NH": "US-NH",
+    "NJ": "US-NJ",
+    "NM": "US-NM",
+    "NY": "US-NY",
+    "NC": "US-NC",
+    "ND": "US-ND",
+    "OH": "US-OH",
+    "OK": "US-OK",
+    "OR": "US-OR",
+    "PA": "US-PA",
+    "RI": "US-RI",
+    "SC": "US-SC",
+    "SD": "US-SD",
+    "TN": "US-TN",
+    "TX": "US-TX",
+    "UT": "US-UT",
+    "VT": "US-VT",
+    "VA": "US-VA",
+    "WA": "US-WA",
+    "WV": "US-WV",
+    "WI": "US-WI",
+    "WY": "US-WY",
 }
 
 STATE_NAMES: dict[str, str] = {
-    "AL": "Alabama", "AK": "Alaska", "AZ": "Arizona", "AR": "Arkansas",
-    "CA": "California", "CO": "Colorado", "CT": "Connecticut", "DE": "Delaware",
-    "DC": "District of Columbia", "FL": "Florida", "GA": "Georgia", "HI": "Hawaii",
-    "ID": "Idaho", "IL": "Illinois", "IN": "Indiana", "IA": "Iowa",
-    "KS": "Kansas", "KY": "Kentucky", "LA": "Louisiana", "ME": "Maine",
-    "MD": "Maryland", "MA": "Massachusetts", "MI": "Michigan", "MN": "Minnesota",
-    "MS": "Mississippi", "MO": "Missouri", "MT": "Montana", "NE": "Nebraska",
-    "NV": "Nevada", "NH": "New Hampshire", "NJ": "New Jersey", "NM": "New Mexico",
-    "NY": "New York", "NC": "North Carolina", "ND": "North Dakota", "OH": "Ohio",
-    "OK": "Oklahoma", "OR": "Oregon", "PA": "Pennsylvania", "RI": "Rhode Island",
-    "SC": "South Carolina", "SD": "South Dakota", "TN": "Tennessee", "TX": "Texas",
-    "UT": "Utah", "VT": "Vermont", "VA": "Virginia", "WA": "Washington",
-    "WV": "West Virginia", "WI": "Wisconsin", "WY": "Wyoming",
+    "AL": "Alabama",
+    "AK": "Alaska",
+    "AZ": "Arizona",
+    "AR": "Arkansas",
+    "CA": "California",
+    "CO": "Colorado",
+    "CT": "Connecticut",
+    "DE": "Delaware",
+    "DC": "District of Columbia",
+    "FL": "Florida",
+    "GA": "Georgia",
+    "HI": "Hawaii",
+    "ID": "Idaho",
+    "IL": "Illinois",
+    "IN": "Indiana",
+    "IA": "Iowa",
+    "KS": "Kansas",
+    "KY": "Kentucky",
+    "LA": "Louisiana",
+    "ME": "Maine",
+    "MD": "Maryland",
+    "MA": "Massachusetts",
+    "MI": "Michigan",
+    "MN": "Minnesota",
+    "MS": "Mississippi",
+    "MO": "Missouri",
+    "MT": "Montana",
+    "NE": "Nebraska",
+    "NV": "Nevada",
+    "NH": "New Hampshire",
+    "NJ": "New Jersey",
+    "NM": "New Mexico",
+    "NY": "New York",
+    "NC": "North Carolina",
+    "ND": "North Dakota",
+    "OH": "Ohio",
+    "OK": "Oklahoma",
+    "OR": "Oregon",
+    "PA": "Pennsylvania",
+    "RI": "Rhode Island",
+    "SC": "South Carolina",
+    "SD": "South Dakota",
+    "TN": "Tennessee",
+    "TX": "Texas",
+    "UT": "Utah",
+    "VT": "Vermont",
+    "VA": "Virginia",
+    "WA": "Washington",
+    "WV": "West Virginia",
+    "WI": "Wisconsin",
+    "WY": "Wyoming",
 }
 
 
@@ -95,10 +172,7 @@ def parse_states(zip_path: Path, verbose: bool = False):
     Format: {STATE}.TXT lines are  State,Gender,Year,Name,Count
     """
     with ZipFile(zip_path) as zf:
-        files = sorted(
-            f for f in zf.namelist()
-            if f.upper().endswith(".TXT") and "readme" not in f.lower()
-        )
+        files = sorted(f for f in zf.namelist() if f.upper().endswith(".TXT") and "readme" not in f.lower())
         for i, fname in enumerate(files, 1):
             if verbose:
                 print(f"  state {fname} ({i}/{len(files)})", flush=True)
@@ -135,10 +209,7 @@ def _seed_regions(conn: psycopg.Connection) -> None:
         ON CONFLICT (code) DO NOTHING
         """
     )
-    rows = [
-        (USPS_TO_ISO[usps], STATE_NAMES[usps], "US", "state")
-        for usps in USPS_TO_ISO
-    ]
+    rows = [(USPS_TO_ISO[usps], STATE_NAMES[usps], "US", "state") for usps in USPS_TO_ISO]
     with conn.cursor() as cur:
         cur.executemany(
             """
@@ -202,13 +273,25 @@ def load_ssa(force_download: bool = False) -> None:
         def all_rows():
             for row in parse_national(national_zip, verbose=True):
                 yield (
-                    row["name"], row["source"], row["year"], row["month"],
-                    row["region_code"], row["gender"], row["count"], row["rank"],
+                    row["name"],
+                    row["source"],
+                    row["year"],
+                    row["month"],
+                    row["region_code"],
+                    row["gender"],
+                    row["count"],
+                    row["rank"],
                 )
             for row in parse_states(state_zip, verbose=True):
                 yield (
-                    row["name"], row["source"], row["year"], row["month"],
-                    row["region_code"], row["gender"], row["count"], row["rank"],
+                    row["name"],
+                    row["source"],
+                    row["year"],
+                    row["month"],
+                    row["region_code"],
+                    row["gender"],
+                    row["count"],
+                    row["rank"],
                 )
 
         print("Pass 2: loading name_stats via COPY...")

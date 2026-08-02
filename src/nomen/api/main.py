@@ -1,17 +1,15 @@
 import os
-from contextlib import asynccontextmanager
-from pathlib import Path
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
-from fastapi import FastAPI, Request
-from fastapi.responses import RedirectResponse
-from starlette.middleware.sessions import SessionMiddleware
+from fastapi import FastAPI, Request  # noqa: E402
+from fastapi.responses import RedirectResponse  # noqa: E402
+from starlette.middleware.sessions import SessionMiddleware  # noqa: E402
 
-from nomen.api.deps import _RedirectException
-from nomen.api.routes import matches, name_detail, names, ratings, user
+from nomen.api.deps import _RedirectException  # noqa: E402
+from nomen.api.routes import matches, name_detail, names, ratings, user  # noqa: E402
 
 
 def create_app() -> FastAPI:

@@ -3,10 +3,8 @@ from typing import Iterator
 
 import psycopg
 from fastapi import Request
-from fastapi.responses import RedirectResponse
-from starlette.responses import Response
 
-from nomen.api.config import Config, get_config
+from nomen.api.config import get_config
 
 
 def get_db() -> Iterator[psycopg.Connection]:

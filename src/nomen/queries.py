@@ -1,4 +1,5 @@
 """Named query functions for the nomen database."""
+
 import psycopg
 import psycopg.rows
 
@@ -8,76 +9,247 @@ import psycopg.rows
 
 TAG_GROUPS: dict[str, list[str]] = {
     "Slavic": [
-        "Bosnian", "Bulgarian", "Belarusian", "Croatian", "Czech", "Macedonian",
-        "Medieval Czech", "Medieval Polish", "Medieval Slavic", "Old Church Slavic",
-        "Old Slavic", "Polish", "Russian", "Serbian", "Slovak", "Slovene",
-        "Sorbian", "Ukrainian", "Slavic Mythology",
+        "Bosnian",
+        "Bulgarian",
+        "Belarusian",
+        "Croatian",
+        "Czech",
+        "Macedonian",
+        "Medieval Czech",
+        "Medieval Polish",
+        "Medieval Slavic",
+        "Old Church Slavic",
+        "Old Slavic",
+        "Polish",
+        "Russian",
+        "Serbian",
+        "Slovak",
+        "Slovene",
+        "Sorbian",
+        "Ukrainian",
+        "Slavic Mythology",
     ],
     "Scandinavian / Norse": [
-        "Danish", "Faroese", "Greenlandic", "Icelandic", "Medieval Scandinavian",
-        "Norse Mythology", "Norwegian", "Old Danish", "Old Norse", "Old Swedish",
-        "Sami", "Swedish",
+        "Danish",
+        "Faroese",
+        "Greenlandic",
+        "Icelandic",
+        "Medieval Scandinavian",
+        "Norse Mythology",
+        "Norwegian",
+        "Old Danish",
+        "Old Norse",
+        "Old Swedish",
+        "Sami",
+        "Swedish",
     ],
     "Germanic": [
-        "Afrikaans", "Anglo-Saxon", "Dutch", "Flemish", "Frankish", "Frisian",
-        "German", "Germanic", "Gothic", "Low German", "Lombardic", "Old Germanic",
-        "Upper German", "Vandalic", "Yiddish",
+        "Afrikaans",
+        "Anglo-Saxon",
+        "Dutch",
+        "Flemish",
+        "Frankish",
+        "Frisian",
+        "German",
+        "Germanic",
+        "Gothic",
+        "Low German",
+        "Lombardic",
+        "Old Germanic",
+        "Upper German",
+        "Vandalic",
+        "Yiddish",
     ],
     "Celtic": [
-        "Breton", "Brythonic", "Celtic Mythology", "Cornish", "Gaulish",
-        "Irish", "Irish Mythology", "Manx", "Medieval Breton", "Medieval Irish",
-        "Medieval Welsh", "Old Celtic", "Old Irish", "Old Welsh", "Pictish",
-        "Scottish", "Scottish Gaelic", "Welsh", "Welsh Mythology",
+        "Breton",
+        "Brythonic",
+        "Celtic Mythology",
+        "Cornish",
+        "Gaulish",
+        "Irish",
+        "Irish Mythology",
+        "Manx",
+        "Medieval Breton",
+        "Medieval Irish",
+        "Medieval Welsh",
+        "Old Celtic",
+        "Old Irish",
+        "Old Welsh",
+        "Pictish",
+        "Scottish",
+        "Scottish Gaelic",
+        "Welsh",
+        "Welsh Mythology",
     ],
     "Romance": [
-        "Asturian", "Catalan", "Corsican", "French", "Galician", "Italian",
-        "Medieval French", "Medieval Italian", "Medieval Occitan",
-        "Medieval Portuguese", "Medieval Spanish", "Moldovan", "Norman",
-        "Occitan", "Portuguese", "Romanian", "Sardinian", "Spanish", "Walloon",
+        "Asturian",
+        "Catalan",
+        "Corsican",
+        "French",
+        "Galician",
+        "Italian",
+        "Medieval French",
+        "Medieval Italian",
+        "Medieval Occitan",
+        "Medieval Portuguese",
+        "Medieval Spanish",
+        "Moldovan",
+        "Norman",
+        "Occitan",
+        "Portuguese",
+        "Romanian",
+        "Sardinian",
+        "Spanish",
+        "Walloon",
     ],
     "Greek / Hellenic": [
-        "Ancient Greek", "Greek", "Greek Mythology", "Late Greek",
+        "Ancient Greek",
+        "Greek",
+        "Greek Mythology",
+        "Late Greek",
     ],
     "Biblical / Semitic": [
-        "Akkadian", "Ancient Aramaic", "Ancient Assyrian", "Ancient Egyptian",
-        "Arabic", "Babylonian", "Biblical Hebrew", "Coptic", "Early Jewish",
-        "Hebrew", "Jewish", "Phoenician", "Quranic", "Semitic Mythology",
+        "Akkadian",
+        "Ancient Aramaic",
+        "Ancient Assyrian",
+        "Ancient Egyptian",
+        "Arabic",
+        "Babylonian",
+        "Biblical Hebrew",
+        "Coptic",
+        "Early Jewish",
+        "Hebrew",
+        "Jewish",
+        "Phoenician",
+        "Quranic",
+        "Semitic Mythology",
     ],
     "Persian / Iranian": [
-        "Avestan", "Dari Persian", "Middle Persian", "Old Persian",
-        "Parthian", "Persian", "Persian Mythology",
+        "Avestan",
+        "Dari Persian",
+        "Middle Persian",
+        "Old Persian",
+        "Parthian",
+        "Persian",
+        "Persian Mythology",
     ],
     "Turkic / Central Asian": [
-        "Azerbaijani", "Kazakh", "Kyrgyz", "Medieval Turkic", "Ottoman Turkish",
-        "Pashto", "Tajik", "Tatar", "Turkish", "Turkmen", "Uyghur", "Uzbek",
+        "Azerbaijani",
+        "Kazakh",
+        "Kyrgyz",
+        "Medieval Turkic",
+        "Ottoman Turkish",
+        "Pashto",
+        "Tajik",
+        "Tatar",
+        "Turkish",
+        "Turkmen",
+        "Uyghur",
+        "Uzbek",
     ],
     "South Asian": [
-        "Assamese", "Bengali", "Gujarati", "Hindi", "Kannada", "Malayalam",
-        "Marathi", "Nepali", "Odia", "Punjabi", "Sanskrit", "Sinhalese",
-        "Tamil", "Telugu", "Urdu",
+        "Assamese",
+        "Bengali",
+        "Gujarati",
+        "Hindi",
+        "Kannada",
+        "Malayalam",
+        "Marathi",
+        "Nepali",
+        "Odia",
+        "Punjabi",
+        "Sanskrit",
+        "Sinhalese",
+        "Tamil",
+        "Telugu",
+        "Urdu",
     ],
     "East Asian": [
-        "Chinese", "Chinese Mythology", "Japanese", "Japanese Mythology",
-        "Korean", "Mongolian", "Tibetan", "Vietnamese",
+        "Chinese",
+        "Chinese Mythology",
+        "Japanese",
+        "Japanese Mythology",
+        "Korean",
+        "Mongolian",
+        "Tibetan",
+        "Vietnamese",
     ],
     "African": [
-        "Akan", "Amharic", "Bemba", "Chewa", "Comorian", "Eastern African",
-        "Ethiopian", "Ewe", "Fula", "Ga", "Ganda", "Hausa", "Igbo",
-        "Igbo Mythology", "Kiga", "Kikuyu", "Kongo", "Luhya", "Luo", "Mbundu",
-        "Mwera", "Ndebele", "Oromo", "Shona", "Somali", "Sotho",
-        "Southern African", "Swahili", "Swazi", "Tigrinya", "Tswana", "Tuareg",
-        "Tumbuka", "Urhobo", "Western African", "Xhosa", "Yao", "Yoruba",
-        "Yoruba Mythology", "Zulu",
+        "Akan",
+        "Amharic",
+        "Bemba",
+        "Chewa",
+        "Comorian",
+        "Eastern African",
+        "Ethiopian",
+        "Ewe",
+        "Fula",
+        "Ga",
+        "Ganda",
+        "Hausa",
+        "Igbo",
+        "Igbo Mythology",
+        "Kiga",
+        "Kikuyu",
+        "Kongo",
+        "Luhya",
+        "Luo",
+        "Mbundu",
+        "Mwera",
+        "Ndebele",
+        "Oromo",
+        "Shona",
+        "Somali",
+        "Sotho",
+        "Southern African",
+        "Swahili",
+        "Swazi",
+        "Tigrinya",
+        "Tswana",
+        "Tuareg",
+        "Tumbuka",
+        "Urhobo",
+        "Western African",
+        "Xhosa",
+        "Yao",
+        "Yoruba",
+        "Yoruba Mythology",
+        "Zulu",
     ],
     "Indigenous American": [
-        "Algonquin", "Apache", "Aymara", "Aztec and Toltec Mythology",
-        "Cherokee", "Cheyenne", "Choctaw", "Comanche", "Cree", "Guarani",
-        "Inca Mythology", "Iroquois", "Mapuche", "Mayan", "Mayan Mythology",
-        "Mohawk", "Nahuatl", "Navajo", "Ojibwe", "Quechua", "Sioux", "Zapotec",
+        "Algonquin",
+        "Apache",
+        "Aymara",
+        "Aztec and Toltec Mythology",
+        "Cherokee",
+        "Cheyenne",
+        "Choctaw",
+        "Comanche",
+        "Cree",
+        "Guarani",
+        "Inca Mythology",
+        "Iroquois",
+        "Mapuche",
+        "Mayan",
+        "Mayan Mythology",
+        "Mohawk",
+        "Nahuatl",
+        "Navajo",
+        "Ojibwe",
+        "Quechua",
+        "Sioux",
+        "Zapotec",
     ],
     "Pacific / Oceanic": [
-        "Cook Islands Māori", "Fijian", "Hawaiian", "Indigenous Australian",
-        "Māori", "Polynesian Mythology", "Samoan", "Tahitian", "Tongan",
+        "Cook Islands Māori",
+        "Fijian",
+        "Hawaiian",
+        "Indigenous Australian",
+        "Māori",
+        "Polynesian Mythology",
+        "Samoan",
+        "Tahitian",
+        "Tongan",
     ],
 }
 
@@ -88,25 +260,29 @@ TAG_GROUPS: dict[str, list[str]] = {
 # Whitelisted fields for advanced conditions: (kind, sql_col)
 # kind: "numeric" | "integer" | "gender" | "language" | "trend" | "region"
 _COND_FIELDS: dict[str, tuple[str, str]] = {
-    "region":     ("region",   "nm.language_tags"),
-    "gender":      ("gender",   "nm.gender"),
-    "language":    ("language", "nm.language_tags"),
-    "trend":       ("trend",    "np.trend_5yr"),
-    "recent_rate": ("numeric",  "np.recent_rate"),
-    "avg_5yr":     ("numeric",  "np.avg_5yr"),
-    "avg_10yr":    ("numeric",  "np.avg_10yr"),
-    "avg_20yr":    ("numeric",  "np.avg_20yr"),
-    "rank_1yr":    ("integer",  "np.rank_1yr"),
-    "rank_5yr":    ("integer",  "np.rank_5yr"),
-    "rank_10yr":   ("integer",  "np.rank_10yr"),
-    "rank_20yr":   ("integer",  "np.rank_20yr"),
-    "trend_5yr":   ("numeric",  "np.trend_5yr"),
-    "trend_10yr":  ("numeric",  "np.trend_10yr"),
-    "peak_year":   ("integer",  "np.peak_year"),
+    "region": ("region", "nm.language_tags"),
+    "gender": ("gender", "nm.gender"),
+    "language": ("language", "nm.language_tags"),
+    "trend": ("trend", "np.trend_5yr"),
+    "recent_rate": ("numeric", "np.recent_rate"),
+    "avg_5yr": ("numeric", "np.avg_5yr"),
+    "avg_10yr": ("numeric", "np.avg_10yr"),
+    "avg_20yr": ("numeric", "np.avg_20yr"),
+    "rank_1yr": ("integer", "np.rank_1yr"),
+    "rank_5yr": ("integer", "np.rank_5yr"),
+    "rank_10yr": ("integer", "np.rank_10yr"),
+    "rank_20yr": ("integer", "np.rank_20yr"),
+    "trend_5yr": ("numeric", "np.trend_5yr"),
+    "trend_10yr": ("numeric", "np.trend_10yr"),
+    "peak_year": ("integer", "np.peak_year"),
 }
 
 _COND_OPS: dict[str, str] = {
-    "gte": ">=", "lte": "<=", "gt": ">", "lt": "<", "eq": "=",
+    "gte": ">=",
+    "lte": "<=",
+    "gt": ">",
+    "lt": "<",
+    "eq": "=",
 }
 
 
@@ -122,8 +298,8 @@ def _apply_conditions(
     """
     for i, cond in enumerate(conds):
         field = cond.get("field", "")
-        op    = cond.get("op", "")
-        val   = cond.get("val", "")
+        op = cond.get("op", "")
+        val = cond.get("val", "")
 
         spec = _COND_FIELDS.get(field)
         if spec is None:
@@ -173,11 +349,8 @@ def _apply_conditions(
 def get_language_tags(conn: psycopg.Connection) -> list[str]:
     """Return all distinct language tags in name_meta, sorted."""
     with conn.cursor() as cur:
-        cur.execute(
-            "SELECT DISTINCT unnest(language_tags) AS tag FROM name_meta ORDER BY 1"
-        )
+        cur.execute("SELECT DISTINCT unnest(language_tags) AS tag FROM name_meta ORDER BY 1")
         return [row[0] for row in cur.fetchall()]
-
 
 
 def search_names(
@@ -210,17 +383,11 @@ def search_names(
     """
     hide_join = ""
     if hide_rated_by:
-        hide_join = (
-            "LEFT JOIN ratings r_hide ON r_hide.name = n.name "
-            "AND r_hide.user_id = %(hide_rated_by)s"
-        )
+        hide_join = "LEFT JOIN ratings r_hide ON r_hide.name = n.name AND r_hide.user_id = %(hide_rated_by)s"
 
     rating_join = ""
     if current_user:
-        rating_join = (
-            "LEFT JOIN ratings r_cur ON r_cur.name = n.name "
-            "AND r_cur.user_id = %(current_user)s"
-        )
+        rating_join = "LEFT JOIN ratings r_cur ON r_cur.name = n.name AND r_cur.user_id = %(current_user)s"
 
     params = {
         "limit": limit,
@@ -253,17 +420,17 @@ def search_names(
     where = ("WHERE " + " AND ".join(sql_conditions)) if sql_conditions else ""
 
     _SORT_COLS = {
-        "name":        "n.name",
-        "rank_1yr":    "np.rank_1yr",
-        "rank_5yr":    "np.rank_5yr",
-        "rank_10yr":   "np.rank_10yr",
-        "rank_20yr":   "np.rank_20yr",
+        "name": "n.name",
+        "rank_1yr": "np.rank_1yr",
+        "rank_5yr": "np.rank_5yr",
+        "rank_10yr": "np.rank_10yr",
+        "rank_20yr": "np.rank_20yr",
         "recent_rate": "np.recent_rate",
-        "avg_5yr":     "np.avg_5yr",
-        "avg_10yr":    "np.avg_10yr",
-        "avg_20yr":    "np.avg_20yr",
-        "trend_5yr":   "np.trend_5yr",
-        "trend_10yr":  "np.trend_10yr",
+        "avg_5yr": "np.avg_5yr",
+        "avg_10yr": "np.avg_10yr",
+        "avg_20yr": "np.avg_20yr",
+        "trend_5yr": "np.trend_5yr",
+        "trend_10yr": "np.trend_10yr",
     }
     col = _SORT_COLS.get(sort_by, "n.name")
     direction = "ASC" if sort_dir != "desc" else "DESC"
@@ -326,16 +493,10 @@ def random_name(
     def _build_query(extra_join: str = "", extra_conditions: list[str] | None = None) -> tuple[str, dict]:
         hide_join = ""
         if hide_rated_by:
-            hide_join = (
-                "LEFT JOIN ratings r_hide ON r_hide.name = n.name "
-                "AND r_hide.user_id = %(hide_rated_by)s"
-            )
+            hide_join = "LEFT JOIN ratings r_hide ON r_hide.name = n.name AND r_hide.user_id = %(hide_rated_by)s"
         rating_join = ""
         if current_user:
-            rating_join = (
-                "LEFT JOIN ratings r_cur ON r_cur.name = n.name "
-                "AND r_cur.user_id = %(current_user)s"
-            )
+            rating_join = "LEFT JOIN ratings r_cur ON r_cur.name = n.name AND r_cur.user_id = %(current_user)s"
         params: dict = {
             "language_tags": language_tags,
             "hide_rated_by": hide_rated_by,
@@ -475,9 +636,7 @@ def get_name_for_card(conn: psycopg.Connection, name: str, current_user: str | N
         return cur.fetchone()
 
 
-def upsert_rating(
-    conn: psycopg.Connection, name: str, user_id: str, rating: int
-) -> None:
+def upsert_rating(conn: psycopg.Connection, name: str, user_id: str, rating: int) -> None:
     """Insert or update a rating. rating must be 2 (love), 1 (like), -1 (dislike), -2 (definitely not)."""
     with conn.cursor() as cur:
         cur.execute(
@@ -491,9 +650,7 @@ def upsert_rating(
     conn.commit()
 
 
-def get_matches(
-    conn: psycopg.Connection, user1: str, user2: str
-) -> list[dict]:
+def get_matches(conn: psycopg.Connection, user1: str, user2: str) -> list[dict]:
     """Return names where both users rated love or like, sorted by match strength."""
     with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
         cur.execute(

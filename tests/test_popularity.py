@@ -1,13 +1,14 @@
 """Tests for the popularity pipeline and popularity-based search filters."""
+
 import pytest
 
 from nomen.pipelines.popularity import load_popularity
-from nomen.queries import search_names, upsert_rating
-
+from nomen.queries import search_names
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def pop_conn(conn, monkeypatch, db_url):
@@ -32,9 +33,9 @@ def pop_conn(conn, monkeypatch, db_url):
         rows = []
         for year in range(2014, 2024):  # 10 years
             i = year - 2014  # 0..9
-            rows.append(("rising",  "SSA", year, "US", "M", 100 + i * 50))
+            rows.append(("rising", "SSA", year, "US", "M", 100 + i * 50))
             rows.append(("falling", "SSA", year, "US", "M", 600 - i * 50))
-            rows.append(("stable",  "SSA", year, "US", "M", 300))
+            rows.append(("stable", "SSA", year, "US", "M", 300))
             # total births row (name="_total_" doesn't exist — we insert a
             # large "other" name to make total = 1,000,000 per year)
             rows.append(("extinct", "SSA", year - 20, "US", "M", 500))
@@ -47,8 +48,7 @@ def pop_conn(conn, monkeypatch, db_url):
             rows.append(("padding", "SSA", year, "US", "M", 999_500))
 
         cur.executemany(
-            "INSERT INTO name_stats (name, source, year, region_code, gender, count) "
-            "VALUES (%s, %s, %s, %s, %s, %s)",
+            "INSERT INTO name_stats (name, source, year, region_code, gender, count) VALUES (%s, %s, %s, %s, %s, %s)",
             rows,
         )
     conn.commit()
@@ -58,6 +58,7 @@ def pop_conn(conn, monkeypatch, db_url):
 # ---------------------------------------------------------------------------
 # load_popularity
 # ---------------------------------------------------------------------------
+
 
 def test_load_popularity_creates_rows(pop_conn):
     load_popularity()
@@ -80,17 +81,13 @@ def test_extinct_name_excluded(pop_conn):
 def test_trend_5yr_direction(pop_conn):
     load_popularity()
     with pop_conn.cursor() as cur:
-        cur.execute(
-            "SELECT name, trend_5yr FROM name_popularity "
-            "WHERE name IN ('rising', 'falling', 'stable')"
-        )
+        cur.execute("SELECT name, trend_5yr FROM name_popularity WHERE name IN ('rising', 'falling', 'stable')")
         rows = {r[0]: r[1] for r in cur.fetchall()}
 
-    assert rows["rising"] > 0,  "rising name should have positive trend_5yr"
+    assert rows["rising"] > 0, "rising name should have positive trend_5yr"
     assert rows["falling"] < 0, "falling name should have negative trend_5yr"
     # stable may have a tiny floating-point non-zero but close to zero
-    assert abs(rows["stable"]) < abs(rows["rising"]), \
-        "stable trend should be smaller in magnitude than rising"
+    assert abs(rows["stable"]) < abs(rows["rising"]), "stable trend should be smaller in magnitude than rising"
 
 
 def test_peak_year_correct(pop_conn):
@@ -154,6 +151,7 @@ def test_avg_5yr_value(pop_conn):
 # search_names popularity filters
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def search_conn(conn, engine):
     """Connection seeded with name_popularity data for filter tests."""
@@ -172,11 +170,11 @@ def search_conn(conn, engine):
             """,
             [
                 # name,    rec, 5yr, 10yr, 20yr, r1, r5, r10,r20, peak, pk_yr, ratio, t5,   t10
-                ("common",   5.0, 5.0, 4.5, 3.0,  1,  1,  1,  1, 6.0, 2020, 0.83,  0.05, 0.04),
-                ("rare",     0.1, 0.1, 0.1, 0.1,  5,  5,  5,  5, 0.2, 2015, 0.50, -0.01, 0.00),
-                ("midrange", 1.0, 1.0, 1.0, 0.8,  3,  3,  3,  3, 1.2, 2018, 0.83,  0.00, 0.01),
-                ("trendy",   2.0, 2.0, 1.0, 0.5,  2,  2,  2,  2, 2.0, 2023, 1.00,  0.20, 0.15),
-                ("fading",   0.5, 0.5, 1.5, 2.5,  4,  4,  4,  4, 3.0, 2010, 0.17, -0.15,-0.10),
+                ("common", 5.0, 5.0, 4.5, 3.0, 1, 1, 1, 1, 6.0, 2020, 0.83, 0.05, 0.04),
+                ("rare", 0.1, 0.1, 0.1, 0.1, 5, 5, 5, 5, 0.2, 2015, 0.50, -0.01, 0.00),
+                ("midrange", 1.0, 1.0, 1.0, 0.8, 3, 3, 3, 3, 1.2, 2018, 0.83, 0.00, 0.01),
+                ("trendy", 2.0, 2.0, 1.0, 0.5, 2, 2, 2, 2, 2.0, 2023, 1.00, 0.20, 0.15),
+                ("fading", 0.5, 0.5, 1.5, 2.5, 4, 4, 4, 4, 3.0, 2010, 0.17, -0.15, -0.10),
             ],
         )
     conn.commit()
@@ -193,24 +191,24 @@ def test_search_sort_by_rank(search_conn):
 def test_search_sort_by_rate_desc(search_conn):
     rows = search_names(search_conn, sort_by="avg_5yr", sort_dir="desc")
     names = [r["name"] for r in rows]
-    assert names[0] == "common"   # avg_5yr=5.0, highest
-    assert names[-1] == "rare"    # avg_5yr=0.1, lowest
+    assert names[0] == "common"  # avg_5yr=5.0, highest
+    assert names[-1] == "rare"  # avg_5yr=0.1, lowest
 
 
 def test_search_trend_rising(search_conn):
     rows = search_names(search_conn, trend="rising")
     names = {r["name"] for r in rows}
-    assert "trendy" in names      # trend_5yr=0.20
-    assert "common" in names      # trend_5yr=0.05
+    assert "trendy" in names  # trend_5yr=0.20
+    assert "common" in names  # trend_5yr=0.05
     assert "fading" not in names  # trend_5yr=-0.15
-    assert "rare" not in names    # trend_5yr=-0.01
+    assert "rare" not in names  # trend_5yr=-0.01
 
 
 def test_search_trend_falling(search_conn):
     rows = search_names(search_conn, trend="falling")
     names = {r["name"] for r in rows}
-    assert "fading" in names      # trend_5yr=-0.15
-    assert "rare" in names        # trend_5yr=-0.01
+    assert "fading" in names  # trend_5yr=-0.15
+    assert "rare" in names  # trend_5yr=-0.01
     assert "trendy" not in names
 
 

@@ -12,10 +12,10 @@ Metrics (all based on US national data, combined M+F):
   trend_5yr         — regr_slope(rate, year) over last 5 years
   trend_10yr        — regr_slope(rate, year) over last 10 years
 """
+
 import os
 
 import psycopg
-
 
 _COMPUTE_SQL = """
 WITH

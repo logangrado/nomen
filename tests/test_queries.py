@@ -1,8 +1,6 @@
 """Tests for nomen.queries — all run against a real per-test Postgres DB."""
-import pytest
 
 from nomen.queries import (
-    TAG_GROUPS,
     get_language_tags,
     get_matches,
     get_name_detail,
@@ -12,10 +10,10 @@ from nomen.queries import (
     upsert_rating,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _seed(conn):
     """Insert a small set of names + meta + ratings for testing."""
@@ -53,9 +51,9 @@ def _seed_popularity(conn):
             """,
             [
                 # name, recent, 5yr, 10yr, 20yr, r1, r5, r10, r20, t5, t10, peak, pk_yr, ratio
-                ("ada",   2.5, 2.3, 2.0, 1.8,  1, 1, 1, 1,  0.05, 0.03, 3.0, 2010, 0.77),
-                ("boris", 1.0, 0.9, 0.8, 0.7,  3, 3, 3, 3, -0.01,-0.02, 1.5, 2005, 0.60),
-                ("zara",  1.8, 1.5, 1.2, 1.0,  2, 2, 2, 2,  0.02, 0.01, 2.0, 2015, 0.75),
+                ("ada", 2.5, 2.3, 2.0, 1.8, 1, 1, 1, 1, 0.05, 0.03, 3.0, 2010, 0.77),
+                ("boris", 1.0, 0.9, 0.8, 0.7, 3, 3, 3, 3, -0.01, -0.02, 1.5, 2005, 0.60),
+                ("zara", 1.8, 1.5, 1.2, 1.0, 2, 2, 2, 2, 0.02, 0.01, 2.0, 2015, 0.75),
                 # milan: no row → NULLs in join
             ],
         )
@@ -65,6 +63,7 @@ def _seed_popularity(conn):
 # ---------------------------------------------------------------------------
 # get_language_tags
 # ---------------------------------------------------------------------------
+
 
 def test_get_language_tags_empty(conn):
     tags = get_language_tags(conn)
@@ -83,6 +82,7 @@ def test_get_language_tags(conn):
 # search_names
 # ---------------------------------------------------------------------------
 
+
 def test_search_names_no_filters(conn):
     _seed(conn)
     rows = search_names(conn)
@@ -94,9 +94,9 @@ def test_search_names_gender_F(conn):
     _seed(conn)
     rows = search_names(conn, gender="F")
     names = [r["name"] for r in rows]
-    assert "ada" in names   # F
+    assert "ada" in names  # F
     assert "zara" in names  # F
-    assert "milan" in names # MF matches F
+    assert "milan" in names  # MF matches F
     assert "boris" not in names  # M only
 
 
@@ -113,7 +113,7 @@ def test_search_names_language_tags(conn):
     _seed(conn)
     rows = search_names(conn, language_tags=["Polish"])
     names = [r["name"] for r in rows]
-    assert "zara" in names   # has Polish
+    assert "zara" in names  # has Polish
     assert "ada" not in names
 
 
@@ -139,6 +139,7 @@ def test_search_names_current_user_rating(conn):
 # ---------------------------------------------------------------------------
 # search_names — sorting
 # ---------------------------------------------------------------------------
+
 
 def test_sort_default_alphabetical(conn):
     _seed(conn)
@@ -197,6 +198,7 @@ def test_sort_name_desc(conn):
 # random_name
 # ---------------------------------------------------------------------------
 
+
 def test_random_name_returns_something(conn):
     _seed(conn)
     result = random_name(conn)
@@ -225,6 +227,7 @@ def test_random_name_gender_filter(conn):
 # upsert_rating
 # ---------------------------------------------------------------------------
 
+
 def test_upsert_rating_insert(conn):
     _seed(conn)
     upsert_rating(conn, "ada", "alice", 2)
@@ -247,6 +250,7 @@ def test_upsert_rating_update(conn):
 # ---------------------------------------------------------------------------
 # get_matches
 # ---------------------------------------------------------------------------
+
 
 def test_get_matches_empty(conn):
     _seed(conn)
@@ -289,12 +293,13 @@ def test_get_matches_sorted_by_strength(conn):
     matches = get_matches(conn, "alice", "bob")
     assert len(matches) == 2
     assert matches[0]["name"] == "boris"  # love+love first
-    assert matches[1]["name"] == "ada"    # like+like second
+    assert matches[1]["name"] == "ada"  # like+like second
 
 
 # ---------------------------------------------------------------------------
 # get_user_ratings
 # ---------------------------------------------------------------------------
+
 
 def test_get_user_ratings(conn):
     _seed(conn)
@@ -318,6 +323,7 @@ def test_get_user_ratings_filtered(conn):
 # ---------------------------------------------------------------------------
 # get_name_detail
 # ---------------------------------------------------------------------------
+
 
 def test_get_name_detail_with_meta(conn):
     _seed(conn)
@@ -379,6 +385,7 @@ def test_get_name_detail_no_meta(conn):
 # search_names — advanced conditions
 # ---------------------------------------------------------------------------
 
+
 def test_conditions_numeric_lte(conn):
     _seed(conn)
     _seed_popularity(conn)
@@ -386,9 +393,9 @@ def test_conditions_numeric_lte(conn):
     conds = [{"field": "avg_5yr", "op": "lte", "val": "1.5"}]
     rows = search_names(conn, conditions_arg=conds)
     names = [r["name"] for r in rows]
-    assert "zara" in names    # 1.5 <= 1.5
-    assert "boris" in names   # 0.9 <= 1.5
-    assert "ada" not in names # 2.3 > 1.5
+    assert "zara" in names  # 1.5 <= 1.5
+    assert "boris" in names  # 0.9 <= 1.5
+    assert "ada" not in names  # 2.3 > 1.5
     assert "milan" not in names  # NULL excluded
 
 
@@ -428,8 +435,8 @@ def test_conditions_combined(conn):
     ]
     rows = search_names(conn, conditions_arg=conds)
     names = [r["name"] for r in rows]
-    assert "ada" in names    # 2.3 >= 1.0 AND rank=1
-    assert "zara" in names   # 1.5 >= 1.0 AND rank=2
+    assert "ada" in names  # 2.3 >= 1.0 AND rank=1
+    assert "zara" in names  # 1.5 >= 1.0 AND rank=2
     assert "boris" not in names  # rank=3 fails second condition
     assert "milan" not in names
 
@@ -441,7 +448,7 @@ def test_conditions_gender(conn):
     names = [r["name"] for r in rows]
     assert "ada" in names
     assert "zara" in names
-    assert "milan" in names   # MF matches F
+    assert "milan" in names  # MF matches F
     assert "boris" not in names
 
 
@@ -450,7 +457,7 @@ def test_conditions_language(conn):
     conds = [{"field": "language", "op": "", "val": "Polish"}]
     rows = search_names(conn, conditions_arg=conds)
     names = [r["name"] for r in rows]
-    assert "zara" in names    # has Polish
+    assert "zara" in names  # has Polish
     assert "ada" not in names  # German, English only
 
 
@@ -529,7 +536,7 @@ def test_conditions_combined_with_gender_filter(conn):
     conds = [{"field": "avg_5yr", "op": "gte", "val": "1.5"}]
     rows = search_names(conn, gender="F", conditions_arg=conds)
     names = [r["name"] for r in rows]
-    assert "ada" in names    # F, avg_5yr=2.3
-    assert "zara" in names   # F, avg_5yr=1.5
+    assert "ada" in names  # F, avg_5yr=2.3
+    assert "zara" in names  # F, avg_5yr=1.5
     assert "boris" not in names  # M, avg_5yr=0.9
     assert "milan" not in names  # MF passes gender but avg_5yr=NULL

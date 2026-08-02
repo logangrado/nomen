@@ -3,9 +3,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from nomen.pipelines.ssa import load_ssa
-from nomen.pipelines.btn import load_btn
-from nomen.pipelines.popularity import load_popularity
+from nomen.pipelines.btn import load_btn  # noqa: E402
+from nomen.pipelines.popularity import load_popularity  # noqa: E402
+from nomen.pipelines.ssa import load_ssa  # noqa: E402
 
 
 @click.group()
@@ -38,6 +38,7 @@ def compute_popularity():
 def init():
     """Run migrations and ingest all data (SSA + BTN + popularity). Safe to re-run."""
     from alembic.config import Config
+
     from alembic import command as alembic_command
 
     click.echo("==> Running database migrations...")
@@ -63,4 +64,5 @@ def init():
 def serve(host, port, reload):
     """Start the Nomen web UI."""
     import uvicorn
+
     uvicorn.run("nomen.api.main:app", host=host, port=port, reload=reload)
