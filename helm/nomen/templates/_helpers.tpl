@@ -32,12 +32,27 @@ Full image reference.
 {{- end }}
 
 {{/*
-DATABASE_URL env var sourced from the configured secret.
+Runtime env vars sourced from the configured secret.
 */}}
-{{- define "nomen.dbEnv" -}}
+{{- define "nomen.secretEnv" -}}
 - name: DATABASE_URL
   valueFrom:
     secretKeyRef:
-      name: {{ .Values.db.secretName }}
-      key: {{ .Values.db.secretKey }}
+      name: {{ .Values.env.secretName }}
+      key: {{ .Values.env.keys.databaseUrl }}
+- name: SECRET_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.env.secretName }}
+      key: {{ .Values.env.keys.secretKey }}
+- name: USER_1
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.env.secretName }}
+      key: {{ .Values.env.keys.user1 }}
+- name: USER_2
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.env.secretName }}
+      key: {{ .Values.env.keys.user2 }}
 {{- end }}
