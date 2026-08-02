@@ -2,9 +2,9 @@
 
 Revision ID: 0001
 Revises:
-Create Date: 2026-06-21
-
+Create Date: 2026-08-02
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa
@@ -76,18 +76,29 @@ def upgrade() -> None:
         ["source", "year", "gender"],
     )
     op.create_index(
-        "ix_name_stats_region_code_year", "name_stats", ["region_code", "year"]
+        "ix_name_stats_region_code_year",
+        "name_stats",
+        ["region_code", "year"],
     )
 
     op.create_table(
         "name_meta",
-        sa.Column("name", sa.Text(), nullable=False),
+        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
+        sa.Column("name", sa.Text(), nullable=True),
+        sa.Column("btn_id", sa.Text(), nullable=True),
         sa.Column("origin", sa.Text(), nullable=True),
         sa.Column("language_tags", postgresql.ARRAY(sa.Text()), nullable=True),
         sa.Column("meaning", sa.Text(), nullable=True),
         sa.Column("notes", sa.Text(), nullable=True),
+        sa.Column(
+            "gender",
+            sa.Text(),
+            sa.CheckConstraint("gender IN ('M','F','MF')"),
+            nullable=True,
+        ),
         sa.ForeignKeyConstraint(["name"], ["names.name"]),
-        sa.PrimaryKeyConstraint("name"),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("btn_id", name="name_meta_btn_id_key"),
     )
     op.create_index(
         "ix_name_meta_language_tags",
@@ -97,13 +108,33 @@ def upgrade() -> None:
     )
 
     op.create_table(
+        "name_popularity",
+        sa.Column("name", sa.Text(), nullable=False),
+        sa.Column("recent_rate", sa.Float(), nullable=True),
+        sa.Column("avg_5yr", sa.Float(), nullable=True),
+        sa.Column("avg_10yr", sa.Float(), nullable=True),
+        sa.Column("avg_20yr", sa.Float(), nullable=True),
+        sa.Column("rank_1yr", sa.Integer(), nullable=True),
+        sa.Column("rank_5yr", sa.Integer(), nullable=True),
+        sa.Column("rank_10yr", sa.Integer(), nullable=True),
+        sa.Column("rank_20yr", sa.Integer(), nullable=True),
+        sa.Column("peak_rate", sa.Float(), nullable=True),
+        sa.Column("peak_year", sa.SmallInteger(), nullable=True),
+        sa.Column("peak_ratio_5yr", sa.Float(), nullable=True),
+        sa.Column("trend_5yr", sa.Float(), nullable=True),
+        sa.Column("trend_10yr", sa.Float(), nullable=True),
+        sa.ForeignKeyConstraint(["name"], ["names.name"]),
+        sa.PrimaryKeyConstraint("name"),
+    )
+
+    op.create_table(
         "ratings",
         sa.Column("name", sa.Text(), nullable=False),
         sa.Column("user_id", sa.Text(), nullable=False),
         sa.Column(
             "rating",
-            sa.Text(),
-            sa.CheckConstraint("rating IN ('love','like','dislike','hate')"),
+            sa.SmallInteger(),
+            sa.CheckConstraint("rating IN (2, 1, -1, -2)"),
             nullable=True,
         ),
         sa.Column(
@@ -121,6 +152,7 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index("ix_ratings_user_id", table_name="ratings")
     op.drop_table("ratings")
+    op.drop_table("name_popularity")
     op.drop_index("ix_name_meta_language_tags", table_name="name_meta")
     op.drop_table("name_meta")
     op.drop_index("ix_name_stats_region_code_year", table_name="name_stats")
